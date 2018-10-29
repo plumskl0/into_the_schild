@@ -1,3 +1,11 @@
+# My stuff
+# Folders
+data/
+MNIST_data/
+out_imgs/
+# Files
+settings.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

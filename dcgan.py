@@ -1,8 +1,62 @@
-import tensorflow as tf
+import os
 import numpy as np
-from tensorflow.examples.tutorials.mnist import input_data
+import tensorflow as tf
+import matplotlib.pyplot as plt
+import mnist_data_generator as mnist
+from PIL import Image
+# %matplotlib inline
+# from tensorflow.examples.tutorials.mnist import input_data
 
-mnist = input_data.read_data_sets('MNIST_data')
+# Code by Parag Mital (github.com/pkmital/CADL)
+def montage(images):
+    if isinstance(images, list):
+        images = np.array(images)
+    img_h = images.shape[1]
+    img_w = images.shape[2]
+    n_plots = int(np.ceil(np.sqrt(images.shape[0])))
+    m = np.ones((images.shape[1] * n_plots + n_plots + 1, images.shape[2] * n_plots + n_plots + 1)) * 0.5
+    for i in range(n_plots):
+        for j in range(n_plots):
+            this_filter = i * n_plots + j
+            if this_filter < images.shape[0]:
+                this_img = images[this_filter]
+                m[1 + i + i * img_h:1 + i + (i + 1) * img_h,
+                  1 + j + j * img_w:1 + j + (j + 1) * img_w] = this_img
+    return m
+
+epochs_completed = 0
+index_in_epoch = 0
+num_examples = 0
+
+# Daten laden
+# mnist = input_data.read_data_sets('MNIST_data')
+(images, labels), (_, _) = mnist.load_data()
+
+def next_batch(batch_size):
+    global index_in_epoch
+    global epochs_completed
+    global images
+    global labels
+
+    start = index_in_epoch
+    index_in_epoch += batch_size
+    if index_in_epoch > num_examples:
+        # Finished epoch
+        epochs_completed += 1
+        # Shuffle the data
+        perm = np.arange(num_examples)
+        np.random.shuffle(perm)
+        images = images[perm]
+        labels = labels[perm]
+        # Start next epoch
+        start = 0
+        index_in_epoch = batch_size
+        assert batch_size <= num_examples
+    end = index_in_epoch
+    return images[start:end], labels[start:end]
+
+num_examples = images.shape[0]
+print('Number of examples {}'.format(num_examples))
 
 tf.reset_default_graph()
 batch_size = 64
@@ -113,8 +167,11 @@ for i in range(60000):
     keep_prob_train = 0.6  # 0.5
 
     n = np.random.uniform(0.0, 1.0, [batch_size, n_noise]).astype(np.float32)
-    batch = [np.reshape(b, [28, 28])
-             for b in mnist.train.next_batch(batch_size=batch_size)[0]]
+    # batch = [np.reshape(b, [28, 28])
+    #          for b in mnist.train.next_batch(batch_size=batch_size)[0]]
+
+    # next_batch funktion nachgebaut aus: https://github.com/tensorflow/tensorflow/blob/7c36309c37b04843030664cdc64aca2bb7d6ecaa/tensorflow/contrib/learn/python/learn/datasets/mnist.py#L160
+    batch = next_batch(batch_size)[0]
 
     d_real_ls, d_fake_ls, g_ls, d_ls = sess.run([loss_d_real, loss_d_fake, loss_g, loss_d], feed_dict={
                                                 X_in: batch, noise: n, keep_prob: keep_prob_train, is_training: True})
@@ -146,7 +203,29 @@ for i in range(60000):
         if not train_d:
             print("not training discriminator")
         gen_img = sess.run(g, feed_dict={noise: n, keep_prob: 1.0, is_training: False})
-        # imgs = [img[:,:,0] for img in gen_img]
+
+        imgs = [img[:,:,0] for img in gen_img]
+
+        out_folder = 'out_imgs'
+
+        # Bilder in einem Ordner speichern
+        if not os.path.exists(out_folder):
+            os.makedirs(out_folder)
+
+        epoch_folder = os.path.join(out_folder, 'epoch_{}'.format(i))
+
+        if not os.path.exists(epoch_folder):
+            os.makedirs(epoch_folder)
+
+        print('Generating images...')
+        for idx in range(len(imgs)):
+            fileName = 'epoch_{}_img_{}.png'.format(i, idx)
+            imgFileName = os.path.join(epoch_folder, fileName)
+            img = Image.fromarray(imgs[idx], mode='RGB')
+            img.save(imgFileName)
+        print('Done\n')
+            
+        # Alternativ Bilder anzeigen
         # m = montage(imgs)
         # gen_img = m
         # plt.axis('off')
