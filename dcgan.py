@@ -217,11 +217,13 @@ for i in range(60000):
         if not os.path.exists(epoch_folder):
             os.makedirs(epoch_folder)
 
+        imgs = (np.array(imgs) * 255).astype(np.uint8)
+
         print('Generating images...')
         for idx in range(len(imgs)):
-            fileName = 'epoch_{}_img_{}.png'.format(i, idx)
+            fileName = '{}_epoch_{}_img.png'.format(i, idx)
             imgFileName = os.path.join(epoch_folder, fileName)
-            img = Image.fromarray(imgs[idx], mode='RGB')
+            img = Image.fromarray(imgs[idx])
             img.save(imgFileName)
         print('Done\n')
             
