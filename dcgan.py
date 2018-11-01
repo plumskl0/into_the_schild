@@ -32,6 +32,10 @@ num_examples = 0
 # mnist = input_data.read_data_sets('MNIST_data')
 (images, labels), (_, _) = mnist.load_data()
 
+# Bilder von 0-255 auf 0-1 bringen
+images = images.astype(np.float32)
+images = np.multiply(images, 1.0 / 255.0)
+
 def next_batch(batch_size):
     global index_in_epoch
     global epochs_completed

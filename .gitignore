@@ -3,6 +3,8 @@
 data/
 MNIST_data/
 out_imgs/
+test_imgs/
+
 # Files
 settings.json
 
