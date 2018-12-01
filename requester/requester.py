@@ -8,7 +8,9 @@
         - Inputordner für Dateien
         - hier werden Dateien abgelegt, die an das NN gesendet werden sollen
         - Unterordner:
-            - /done     - Bearbeitete Bilder werden in diesen Ordner verschoben
+            - /done         - Klassifizierte Bilder 
+            - /done/error   - Bilder die durch einen Fehler nicht klassifiziert wurden
+            - /trash        - Dateien die keine PNGs sind
     req_out
         - Outputordner für Dateien
         - req_history.xml
@@ -29,11 +31,14 @@ import logging
 import requests
 import configparser as cfgp
 from lxml import etree
+from datetime import datetime
 
 # Ordner
 root = './'
 dirIn = os.path.join(root, 'req_in')
 dirDone = os.path.join(dirIn, 'done')
+dirTrash = os.path.join(dirIn, 'trash')
+dirError = os.path.join(dirDone, 'error')
 dirOut = os.path.join(root, 'req_out')
 
 # Dateien
@@ -58,9 +63,11 @@ XML_ATR_DTYPE = 'dtype'
 XML_ATR_DATE_FORMAT = '%H:%M:%S %d-%m-%Y'
 
 # Prüfen ob Dateien und Ordner vorhanden sind, ggfs. anlegen
+
+
 def initLogging(logFile='requester.log'):
     logging.basicConfig(
-        #filename=logFile,
+        # filename=logFile,
         level=logging.DEBUG,
         format='%(asctime)s:%(levelname)s:%(message)s'
     )
@@ -72,34 +79,33 @@ def initLogging(logFile='requester.log'):
     # log.addHandler(ch)
     return log
 
+
 def getMyLogger():
     return logging.getLogger('requester')
 
+
 def checkFilesFolders():
+    createDir(dirIn, dirTrash, dirDone, dirError, dirOut)
+    createFile(fileConfig, fileHistory)
+
+
+def createDir(*args):
     log = getMyLogger()
-    if not os.path.exists(dirIn):
-        log.debug('Creating Dir: {}'.format(dirIn))
-        os.makedirs(dirIn)
+    for d in args:
+        if not os.path.exists(d):
+            log.debug('Creating Dir: {}'.format(d))
+            os.makedirs(d)
 
-    if not os.path.exists(dirDone):
-        log.debug('Creating Dir: {}'.format(dirDone))
-        os.makedirs(dirDone)
 
-    if not os.path.exists(dirOut):
-        log.debug('Creating Dir: {}'.format(dirOut))
-        os.makedirs(dirOut)
+def createFile(*args):
+    log = getMyLogger()
+    for f in args:
+        if not os.path.exists(f):
+            log.debug('Creating File: {}'.format(f))
+            with open(f, 'w') as myFile:
+                config = createConfigTemplate()
+                config.write(myFile)
 
-    if not os.path.exists(fileConfig):
-        log.debug('Creating File: {}'.format(fileConfig))
-        with open(fileConfig, 'w') as cfgFile:
-            config = createConfigTemplate()
-            config.write(cfgFile)
-
-    if not os.path.exists(fileHistory):
-        log.debug('Creating File: {}'.format(fileHistory))
-        with open(fileHistory, 'w') as hisFile:
-            root = createHistoryTemplate()
-            root.write(hisFile)
 
 def createConfigTemplate():
     getMyLogger().debug('Creating Config File: {}'.format(PARAM_REQ))
@@ -134,9 +140,10 @@ def getUrlKey():
 def sendRequest(img):
     myUrl = url
     myData = {PARAM_KEY: key}
-    myFiles = {'image':img}
+    myFiles = {'image': img}
 
     return requests.post(myUrl, data=myData, files=myFiles)
+
 
 def createHistoryTemplate():
     log = getMyLogger()
@@ -153,30 +160,60 @@ def createHistoryTemplate():
     image.attrib[XML_ATR_DTYPE] = 'np.int32'
     return root
 
+
 log = initLogging()
 log.debug('Starting Folder check...')
 checkFilesFolders()
+log.debug('Done')
 # Config Einträge prüfen
 # Ohne Api-Key nichts machen
 run = 0
 url, key = getUrlKey()
 
-if not PARAM_DEF_KEY_VAL == key:
+# Nicht default Value und nicht leer
+if not PARAM_DEF_KEY_VAL == key or not key:
     run = 1
-
+    log.info('API-Key found')
+else:
+    log.error('No API-Key defined in requester.ini')
 # while run:
 
     # while True: -- Hier kommt später die Schleife hin
     # Input Ordner auf Bilder überprüfen
 _, _, files = next(os.walk(dirIn))
 
+log.info('Files to process {}'.format(len(files)))
+
 # for f in files:
 
-# Dateinamen erzeugen
-path = os.path.join(dirIn, files[0])
-
-img = None
+# Dateiname/pfad erzeugen
+imgPath = os.path.join(dirIn, files[0])
 
 # Nur PNG Bilder einlesen
-# if 'png' in path.lower():
-#     img = open(path, 'rb')
+if 'png' in imgPath.lower():
+    log.info('Opening file {}'.format(imgPath))
+    img = open(imgPath, 'rb')
+
+    myData = {'key': key}
+    myFiles = {'image': img}
+
+    response = requests.post(url, data=myData, files=myFiles)
+    img.close()
+
+    dest = ''
+    now = datetime.now()
+    # Aktuelle Zeit für den Dateinamen nutzen
+    newName = '{}.png'.format(now.strftime('%Y-%m-%d_%H_%M_%S'))
+
+    if response.ok:
+        log.info('Image sucessfully transfered')
+
+        # In done Ordner verschieben
+        dest = os.path.join(dirDone, newName)
+    else:
+        # In done/error Ordner verschieben
+        log.error('Request error: {}'.format(response.text))
+        dest = os.path.join(dirError, newName)
+
+    log.info('Moving file to: {}'.format(dest))
+    os.rename(imgPath, dest)

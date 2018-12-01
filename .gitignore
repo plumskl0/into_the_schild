@@ -4,9 +4,12 @@ data/
 MNIST_data/
 out_imgs/
 test_imgs/
+req_in/
 
 # Files
 settings.json
+requester.ini
+req_history.xml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
