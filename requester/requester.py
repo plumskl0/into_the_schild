@@ -164,7 +164,7 @@ def createHistoryTemplate():
 log = initLogging()
 log.debug('Starting Folder check...')
 checkFilesFolders()
-log.debug('Done')
+log.debug('Folder check done')
 # Config Einträge prüfen
 # Ohne Api-Key nichts machen
 run = 0
@@ -185,9 +185,9 @@ _, _, files = next(os.walk(dirIn))
 log.info('Files to process {}'.format(len(files)))
 
 # for f in files:
-
+f = files[0]
 # Dateiname/pfad erzeugen
-imgPath = os.path.join(dirIn, files[0])
+imgPath = os.path.join(dirIn, f)
 
 # Nur PNG Bilder einlesen
 if 'png' in imgPath.lower():
@@ -208,6 +208,9 @@ if 'png' in imgPath.lower():
     if response.ok:
         log.info('Image sucessfully transfered')
 
+        # Response verarbeiten
+        classification = response.json()
+
         # In done Ordner verschieben
         dest = os.path.join(dirDone, newName)
     else:
@@ -217,3 +220,8 @@ if 'png' in imgPath.lower():
 
     log.info('Moving file to: {}'.format(dest))
     os.rename(imgPath, dest)
+else:
+    log.info('File "{}" is not an PNG moving to trash'.format(f))
+
+    trash = os.path.join(dirTrash, f)
+    os.rename(imgPath, trash)
