@@ -10,6 +10,7 @@ req_in/
 settings.json
 requester.ini
 req_history.xml
+requester.log
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
