@@ -43,6 +43,15 @@ import os
 import imageio
 import logging
 import numpy as np
+from istlogging import istLogger
 
+# Ordner
 root = './'
 dirItsImages = os.path.join(root, 'its_images')
+
+# Dateien
+fileConfig = 'ist_dcgan.ini'
+logName = 'ist_dcgan'
+
+# Default Config Werte
+# TODO: Configwerte einbauen 
