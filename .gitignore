@@ -4,9 +4,11 @@ data/
 MNIST_data/
 out_imgs/
 test_imgs/
+its_images/
 
 # Files
 settings.json
+its_dcgan.ini
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
