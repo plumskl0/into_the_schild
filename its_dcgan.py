@@ -55,28 +55,26 @@ logName = 'its_dcgan'
 
 log = istLogger.initLogger(logName=logName, debug=debug)
 
-def createDir(*args):
-    for d in args:
-        if not os.path.exists(d):
-            log.debug('Creating Dir: {}'.format(d))
-            os.makedirs(d)
-
-def createRunFolderName():
-    _, folders, _ = next(os.walk(dirItsImages))
-    name = 'gen_imgs_run_{}'.format(len(folders))
-    dirPath = os.path.join(dirItsImages, name)
-    createDir(dirPath)
-    return dirPath
-
 
 # Ordner
 root = './'
 dirItsImages = os.path.join(root, 'its_images')
+
+def createRunFolderName():
+    folders = []
+
+    if os.path.exists(dirItsImages):
+        _, folders, _ = next(os.walk(dirItsImages))
+
+    name = 'gen_imgs_run_{}'.format(len(folders))
+    dirPath = os.path.join(dirItsImages, name)
+    return dirPath
+
 dirRunImages = createRunFolderName()
 
 def checkFilesFolders():
     log.info('Checking Files and Folders...')
-    createDir(dirItsImages)
+    createDir(dirItsImages, dirRunImages)
 
     if not os.path.exists(fileConfig):
         log.info('Creating File: {}'.format(fileConfig))
@@ -86,10 +84,15 @@ def checkFilesFolders():
 
     log.info('Files and Folders check completed.')
 
+def createDir(*args):
+    for d in args:
+        if not os.path.exists(d):
+            log.debug('Creating Dir: {}'.format(d))
+            os.makedirs(d)
+
 
 # Default Config Werte
 # TODO: Configwerte einbauen
-
 
 checkFilesFolders()
 
@@ -125,7 +128,7 @@ images = np.multiply(images, 1.0 / 255.0)
 
 tf.reset_default_graph()
 # Batchsize ist am Anfang so groß wie die Datenbasis
-batch_size = 7
+batch_size = 8
 n_noise = 64
 
 x_in = tf.placeholder(dtype=tf.float32, shape=imgShape, name='x_in')
@@ -285,6 +288,7 @@ with tf.control_dependencies(update_ops):
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
 
+
 def generateImages(cnt):
 
     n = createNoise(cnt, n_noise)
@@ -295,6 +299,7 @@ def generateImages(cnt):
     })
 
     return gen_img
+
 
 def saveEpochImages(imgs, epoch):
     dirEpoch = os.path.join(dirRunImages, 'epoch_{}'.format(epoch))
@@ -311,8 +316,10 @@ def saveEpochImages(imgs, epoch):
         log.debug('Generating image {}'.format(imgPath))
         imageio.imwrite(imgPath, imgs[i])
 
+
 def createNoise(batch_size, n_noise):
     return np.random.uniform(0.0, 1.0, [batch_size, n_noise]).astype(np.float32)
+
 
 for i in range(epochs):
     # Zum Debuggen:
@@ -381,6 +388,3 @@ for i in range(epochs):
         imgs = generateImages(cntGenerateImages)
         saveEpochImages(imgs, i)
 
-
-
-# TODO: Hier den Output einbauen
