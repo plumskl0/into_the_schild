@@ -24,7 +24,7 @@
                 </request_history>
 
 '''
-# Path hack
+# Path hack für Standalone Requester
 import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
@@ -37,7 +37,7 @@ import numpy as np
 import configparser as cfgp
 from lxml import etree
 from datetime import datetime
-from istlogging import istLogger
+from itslogging import ITSLogger
 
 # Ordner
 root = './its_request'
@@ -76,7 +76,7 @@ XML_ATR_DATE_FORMAT = '%d-%m-%Y %H:%M:%S'
 class Requester:
 
     def __init__(self, debug=False):
-        self.logger = istLogger.initLogger(
+        self.logger = ITSLogger(
             logName='its_requester',
             debug=debug)
 
