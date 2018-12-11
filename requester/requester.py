@@ -24,17 +24,20 @@
                 </request_history>
 
 '''
+# Path hack
+import os, sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 import os
 import time
 import json
-import logging
 import imageio
 import requests
 import numpy as np
 import configparser as cfgp
 from lxml import etree
 from datetime import datetime
+from istlogging import istLogger
 
 # Ordner
 root = './its_request'
@@ -70,32 +73,12 @@ XML_ATR_DATE = 'date'
 XML_ATR_DTYPE = 'dtype'
 XML_ATR_DATE_FORMAT = '%d-%m-%Y %H:%M:%S'
 
-# Prüfen ob Dateien und Ordner vorhanden sind, ggfs. anlegen
-
-
-def initLogging(logFile='requester.log'):
-    logging.basicConfig(
-        # filename=logFile,
-        level=logging.DEBUG,
-        format='%(asctime)s:%(levelname)s:%(message)s'
-    )
-
-    log = logging.getLogger('requester')
-
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
-    log.addHandler(ch)
-    return log
-
-
-def getMyLogger():
-    return logging.getLogger('requester')
-
-
 class Requester:
 
-    def __init__(self):
-        self.logger = getMyLogger()
+    def __init__(self, debug=False):
+        self.logger = istLogger.initLogger(
+            logName='its_requester',
+            debug=debug)
 
         # Um beim ersten Start eine Beispiel XML zu erzeugen
         self.xmlHistory = True
@@ -191,8 +174,7 @@ class Requester:
         return results
 
     def createHistoryTemplate(self):
-        log = getMyLogger()
-        log.debug('Creating History Template: {}'.format(XML_ROOT))
+        self.logger.debug('Creating History Template: {}'.format(XML_ROOT))
         root = etree.Element(XML_ROOT)
 
         # Elemente erzeugen
@@ -292,4 +274,5 @@ class Requester:
             time.sleep(self.delay)
 
 if __name__ == '__main__':
-    Requester()
+    print("Starting Debugmode Requester...")
+    Requester(debug=True)
