@@ -11,6 +11,13 @@ settings.json
 requester.ini
 req_history.xml
 requester.log
+its_images/
+
+# Files
+settings.json
+its_dcgan.ini
+*.tar
+*.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
