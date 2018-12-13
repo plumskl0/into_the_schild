@@ -11,7 +11,7 @@ Der Branch dient zum Zusammenführen des Requesters und des DCGANs.
     - Erbt nun von *LoggerAdapter* 
 - 13.12.2019
   -  Umbenennung: *ItsLogger*, *ItsDcgan*
-  -  Erstellung von *ItsEpochInfo*
+  -  Erstellung von *ItsEpochInfo*, *ItsEpochLoss*
   -  Änderungen An *ItsDcgan*:
      -  Umwandlung in Klasse
      -  Vereinfachte Nutzung durch neue Methoden:
@@ -22,10 +22,14 @@ Der Branch dient zum Zusammenführen des Requesters und des DCGANs.
            -  etc.
         -  *initDcgan*: Initialisiert *generator* und *discriminator*
            -  TODO: Anpassung von *initDcgan* um Filter, Kernel, etc. einzustellen
+        - Automatisches *initEpoch* entfernt.
+          - Epochen müssen nun manuell initalisiert werden
   - Änderung an *ItsLogger*:
     - Logger hat neue Methode *infoEpoch(itsEpochInfo)* erhalten
       - Nutzt die Klasse *ItsEpochInfo* um ein Logging für die aktuelle Epoche auszugeben
       - Dient gleichzeitig als Vorlage für weitere Logger (z.B. XmlLogger)
+    - Neue Methode *debugEpochLoss(itsEpochLoss)*
+      - Gibt die Infos über die Discriminator/Generator Losses aus
 
 
 # TODOs

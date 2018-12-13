@@ -2,11 +2,6 @@
 
 class ItsEpochInfo():
 
-    # max_epochs = property(get_x, set_x)
-    # n_noise = property(get_x, set_x)
-    # cntBaseImages = property(get_x, set_x)
-    # cntGenerateImages = property(get_x, set_x)
-
     def __init__(
         self,
         sessionNr,

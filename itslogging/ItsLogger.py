@@ -36,7 +36,7 @@ class ItsLogger(logging.LoggerAdapter):
 
     def infoEpoch(self, itsEpochInfo):
         self.lgr.debug('Preparing epoch info...')
-        msg = 'Session {} : Max Epochs: {}, Image base: {}, Image Generation: {}'.format(
+        msg = 'Session: {}, Max Epochs: {}, Image base: {}, Image Generation: {}'.format(
             itsEpochInfo.sessionNr,
             itsEpochInfo.max_epochs,
             itsEpochInfo.cntBaseImages,
@@ -44,6 +44,29 @@ class ItsLogger(logging.LoggerAdapter):
         )
         self.lgr.info(msg)
 
+    def debugEpochLosses(self, epochLoss):
+        self.lgr.debug('Preparing epoch loss..')
+
+        self.lgr.debug('Session {}, Epoch {}:'.format(
+                epochLoss.sessionNr,
+                epochLoss.epoch
+        ))
+
+        self.lgr.debug('Discriminator loss:'.rjust(20,' ') + '\t{}'.format(
+            epochLoss.d_ls
+        ))
+
+        self.lgr.debug('Generator loss:'.rjust(20,' ') + '\t{}'.format(
+            epochLoss.g_ls
+        ))
+
+        self.lgr.debug('Disc real loss:'.rjust(20,' ') + '\t{}'.format(
+            epochLoss.d_real_ls
+        ))
+
+        self.lgr.debug('Disc fake loss:'.rjust(20,' ') + '\t{}'.format(
+            epochLoss.d_fake_ls
+        ))
 
 if __name__ == '__main__':
     print('Debugging mode for Logger')

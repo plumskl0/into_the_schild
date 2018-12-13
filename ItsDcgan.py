@@ -4,25 +4,25 @@
 
     Wir haben sieben Beispielbilder, die wir als Datengrundlage nutzen. Die Bilder
     werden in verschiedenen Ordnern (Kategorie) als erstes Bild abgelegt und zum
-    Trainieren des Generators und Discriminators genutzt. 
+    Trainieren des Generators und Discriminators genutzt.
 
-    Nach einigen Epochen werden fünf Bilder aus jeder Kategorie vom Discriminator gewählt 
-    und an den Requester gegeben. Der Requester schickt die generierten Daten an das 
+    Nach einigen Epochen werden fünf Bilder aus jeder Kategorie vom Discriminator gewählt
+    und an den Requester gegeben. Der Requester schickt die generierten Daten an das
     NeuronaleNetz der Aufgabe und gibt uns die Klassifikationswerte an.
 
     Im ersten Versuch wird das DCGAN nach einingen Epochen Bilder generieren, die in die
-    Datengrundlage aufgenommen werden. Mithilfe dieses Durchlaufs ermitteln wir ob das 
-    DCGAN mit einer möglichst simplen Methode "gute" Bilder erzeugen wird. 
-    
-    Gute Bilder sind Bilder die vom Klassifkationsnetz der Aufgabe mit einer möglichst 
+    Datengrundlage aufgenommen werden. Mithilfe dieses Durchlaufs ermitteln wir ob das
+    DCGAN mit einer möglichst simplen Methode "gute" Bilder erzeugen wird.
+
+    Gute Bilder sind Bilder die vom Klassifkationsnetz der Aufgabe mit einer möglichst
     hohen Konfidenz bewertet.
 
-    Es sind bereits weitere Abläufe geplant, die eine etwas voreingenommene Auswahl 
+    Es sind bereits weitere Abläufe geplant, die eine etwas voreingenommene Auswahl
     von Bildern nutzen wird. Aber das kommt später.
 
-    Zum nachvollziehen der Entwicklung wird eine Historie der Losswerte und 
+    Zum nachvollziehen der Entwicklung wird eine Historie der Losswerte und
     Bewertung des NN erzeugt. Die Aufgabe könnte jedoch im Requester implementiert
-    werden. 
+    werden.
 
     Benötigte Ordnersturktur:
     its_images
@@ -33,7 +33,7 @@
                 - Zunächst einfache Namensgebung mit Zahlen
                 - TODO: evtl. ein Mapping der Kategorie und Ordner erstellen
             - /generated_epoch_x     - nach X Epochen generierte Bilder
-            - 
+            -
     its_dcgan.ini
         - Konfigurationsdatei um später einfacher verschiedene DCGANs zu testen
         - TODO: evtl. eine Kofigurationsdatei erzeugen für Requester umd DCGAN
@@ -45,7 +45,7 @@ import logging
 import numpy as np
 import tensorflow as tf
 from itslogging import ItsLogger
-from itsmisc import ItsEpochInfo
+from itsmisc import ItsEpochInfo, ItsEpochLoss
 
 # Debugmodus
 debug = True
@@ -74,7 +74,6 @@ class ItsDcgan():
         self.dirBaseImgs = os.path.join(self.dirItsImages, 'base_images')
 
         self.sess = None
-        self.initEpoch()
 
     def __del__(self):
         self.log.debug('Killing ITSdcgan...')
@@ -86,7 +85,7 @@ class ItsDcgan():
 
     def initEpoch(
         self, epochs=10, n_noise=64, batch_size=4,
-        stepsHistory=50, stepsImageGeneration=1000,
+        stepsHistory=50, enableImageGeneration=False,
         cntGenerateImages=40
     ):
         self.log.info('Initializing epoch...')
@@ -100,10 +99,13 @@ class ItsDcgan():
 
         # Informationsoutput alle Epochen
         self.stepsHistory = stepsHistory
-        self.stepsImageGeneration = stepsImageGeneration
-
         # Anzahl der Generierten Bilder pro ImageGeneration
-        self.cntGenerateImages = cntGenerateImages
+        self.enableImageGeneration = enableImageGeneration
+        if self.enableImageGeneration:
+            self.cntGenerateImages = cntGenerateImages
+        else:
+            self.cntGenerateImages = 0
+
         self.checkFilesFolders()
 
         self.images, self.labels = self.generateBaseData()
@@ -116,7 +118,8 @@ class ItsDcgan():
             self.log.infoEpoch(self.getEpochInfo())
             self.readyEpoch = True
         else:
-            self.log.error('Epoch could not be initalized: No BaseImages found')
+            self.log.error(
+                'Epoch could not be initalized: No BaseImages found')
 
     def checkFilesFolders(self):
         if not os.path.exists(self.dirBaseImgs):
@@ -182,7 +185,7 @@ class ItsDcgan():
 
     def createRunFolderName(self):
         self.log.info('Creating Session/Run Folder...')
-      
+
         name = 'gen_imgs_run_{}'.format(self.cnt_runs)
         self.dirRunImages = os.path.join(self.dirSession, name)
         self.createDir(self.dirItsImages, self.dirRunImages, self.dirBaseImgs)
@@ -213,7 +216,7 @@ class ItsDcgan():
             for f in files:
                 imgPath = os.path.join(root, f)
                 img, lbl = self.loadImage(imgPath)
-                
+
                 imgs += img
                 lbls += lbl
 
@@ -358,6 +361,9 @@ class ItsDcgan():
     def createNoise(self, batch_size, n_noise):
         return np.random.uniform(0.0, 1.0, [batch_size, n_noise]).astype(np.float32)
 
+    def createEpochLoss(self, sessionNr, epoch, d_ls, g_ls, d_real_ls, d_fake_ls):
+        return ItsEpochLoss(sessionNr, epoch, d_ls, g_ls, d_real_ls, d_fake_ls)
+
     def start(self):
         if self.readyEpoch and self.readyDcgan:
             self.createRunFolderName()
@@ -419,29 +425,34 @@ class ItsDcgan():
                     })
 
                 if not i % self.stepsHistory:
-                    # TODO: Hier kann eine Historienfunktion eingebaut werden
-                    self.log.debug(
-                        'Epoch: {}, d_ls: {}, g_ls: {}, d_real_ls: {}, d_fake_ls: {}'.format(
-                            i, d_ls, g_ls, d_real_ls, d_fake_ls
-                        ))
 
-                if not i % self.stepsImageGeneration:
+                    eLoss = self.createEpochLoss(
+                        self.sessionNr,
+                        i, d_ls, g_ls,
+                        d_real_ls, d_fake_ls
+                    )
+
+                    self.log.debugEpochLosses(eLoss)
+
                     # Bilder generieren
-                    self.log.info('Epoch {}: Generating {} images'.format(
-                        i, self.cntGenerateImages))
-                    imgs = self.generateImages(self.cntGenerateImages)
-                    self.saveEpochImages(imgs, i)
+                    if self.enableImageGeneration:
+                        self.log.info('Epoch {}: Generating {} images'.format(
+                            i, self.cntGenerateImages))
+                        imgs = self.generateImages(self.cntGenerateImages)
+                        self.saveEpochImages(imgs, i)
 
             self.log.info('Run {} completed.'.format(self.cnt_runs))
             self.cnt_runs += 1
         else:
             if self.readyEpoch:
                 self.log.error('Epoch not initialized.')
-            
+
             self.log.error('DCGAN not initialized')
+
 
 if __name__ == "__main__":
     print('Debugingmode ItsDcgan.')
     g = ItsDcgan()
+    g.initEpoch(stepsHistory=4, enableImageGeneration=False, cntGenerateImages=10)
     g.initDcgan()
     g.start()
