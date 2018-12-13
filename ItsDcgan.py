@@ -56,7 +56,6 @@ class ItsDcgan():
     def __init__(self, sessionNr='0'):
 
         # Dateien
-        self.fileConfig = 'its_dcgan.ini'
         self.logName = 'its_dcgan'
         self.cnt_runs = 0
         self.sessionNr = sessionNr
@@ -71,11 +70,9 @@ class ItsDcgan():
             self.dirItsImages,
             'session_{}'.format(self.sessionNr)
         )
+        self.dirBaseImgs = os.path.join(self.dirItsImages, 'base_images')
 
-        # Default Config Werte
-        # TODO: Configwerte einbauen
         self.sess = None
-        self.checkFilesFolders()
         self.initEpoch()
 
     def __del__(self):
@@ -113,7 +110,6 @@ class ItsDcgan():
         # Anzahl der Bilder in der Basis
         self.cntBaseImages = len(self.images)
         self.log.info('Epoch initialized.')
-        # TODO: Epoch info printen
         self.log.infoEpoch(self.getEpochInfo())
 
     def getEpochInfo(self):
@@ -182,18 +178,7 @@ class ItsDcgan():
 
         name = 'gen_imgs_run_{}'.format(self.cnt_runs)
         self.dirRunImages = os.path.join(self.dirSession, name)
-        self.createDir(self.dirItsImages, self.dirRunImages)
-
-    def checkFilesFolders(self):
-        self.log.info('Checking Files and Folders...')
-
-        if not os.path.exists(self.fileConfig):
-            self.log.info('Creating File: {}'.format(self.fileConfig))
-            # with open(fileConfig, 'w') as cfgFile:
-            # config = createConfigTemplate()
-            # config.write(cfgFile)
-
-        self.log.info('Files and Folders check completed.')
+        self.createDir(self.dirItsImages, self.dirRunImages, self.dirBaseImgs)
 
     def createDir(self, *args):
         for d in args:
@@ -202,7 +187,7 @@ class ItsDcgan():
                 os.makedirs(d)
 
     def generateData(self):
-        _, folders, files = next(os.walk(self.dirItsImages))
+        _, folders, files = next(os.walk(self.dirBaseImgs))
 
         self.log.info('Found {} files in directory {}'.format(
             len(files), self.dirItsImages))
