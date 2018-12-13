@@ -59,7 +59,8 @@ class ItsDcgan():
         self.logName = 'its_dcgan'
         self.cnt_runs = 0
         self.sessionNr = sessionNr
-        self.ready = False
+        self.readyDcgan = False
+        self.readyEpoch = False
 
         self.log = ItsLogger(logName=self.logName, debug=debug)
 
@@ -103,14 +104,23 @@ class ItsDcgan():
 
         # Anzahl der Generierten Bilder pro ImageGeneration
         self.cntGenerateImages = cntGenerateImages
+        self.checkFilesFolders()
 
-        self.images, self.labels = self.generateData()
+        self.images, self.labels = self.generateBaseData()
         self.imgShape = [None, 64, 64, 3]
 
         # Anzahl der Bilder in der Basis
         self.cntBaseImages = len(self.images)
-        self.log.info('Epoch initialized.')
-        self.log.infoEpoch(self.getEpochInfo())
+        if self.cntBaseImages:
+            self.log.info('Epoch initialized.')
+            self.log.infoEpoch(self.getEpochInfo())
+            self.readyEpoch = True
+        else:
+            self.log.error('Epoch could not be initalized: No BaseImages found')
+
+    def checkFilesFolders(self):
+        if not os.path.exists(self.dirBaseImgs):
+            self.createDir(self.dirBaseImgs)
 
     def getEpochInfo(self):
         self.log.info('Generating Epoch Info.')
@@ -167,15 +177,12 @@ class ItsDcgan():
 
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
-        self.ready = True
+        self.readyDcgan = True
         self.log.info('DCGAN initialized.')
 
     def createRunFolderName(self):
         self.log.info('Creating Session/Run Folder...')
-        folders = []
-        if os.path.exists(self.dirItsImages):
-            _, folders, _ = next(os.walk(self.dirItsImages))
-
+      
         name = 'gen_imgs_run_{}'.format(self.cnt_runs)
         self.dirRunImages = os.path.join(self.dirSession, name)
         self.createDir(self.dirItsImages, self.dirRunImages, self.dirBaseImgs)
@@ -186,31 +193,44 @@ class ItsDcgan():
                 self.log.debug('Creating Dir: {}'.format(d))
                 os.makedirs(d)
 
-    def generateData(self):
-        _, folders, files = next(os.walk(self.dirBaseImgs))
+    def generateBaseData(self):
 
-        self.log.info('Found {} files in directory {}'.format(
-            len(files), self.dirItsImages))
-
-        imgs = []
-        lbls = []
-
-        # Zunächst nur die Bilder
-        for f in files:
-            imgPath = os.path.join(self.dirItsImages, f)
-            self.log.debug('Loading file {}'.format(imgPath))
-            # Bild als Numpy-Array einlesen
-            imgArr = imageio.imread(imgPath)
-            imgs.append(imgArr)
-            lbls.append(1)
-
-        imgs = np.array(imgs)
+        imgs, lbls = self.loadBaseDir()
 
         # Bilder von 0-255 auf 0-1 bringen
+        imgs = np.array(imgs)
         imgs = imgs.astype(np.float32)
         imgs = np.multiply(imgs, 1.0 / 255.0)
 
         return imgs, np.array(lbls)
+
+    def loadBaseDir(self):
+
+        imgs = []
+        lbls = []
+
+        for root, _, files in os.walk(self.dirBaseImgs):
+            for f in files:
+                imgPath = os.path.join(root, f)
+                img, lbl = self.loadImage(imgPath)
+                
+                imgs += img
+                lbls += lbl
+
+        return imgs, lbls
+
+    def loadImage(self, imgPath):
+        img = []
+        lbl = []
+        if '.png' in str.lower(imgPath):
+            self.log.debug('Loading Image {}'.format(imgPath))
+
+            # Bild als Numpy-Array einlesen
+            imgArr = imageio.imread(imgPath)
+            img.append(imgArr)
+            lbl.append(1)
+
+        return img, lbl
 
     def next_batch(self):
         start = self.index_in_epoch
@@ -339,7 +359,7 @@ class ItsDcgan():
         return np.random.uniform(0.0, 1.0, [batch_size, n_noise]).astype(np.float32)
 
     def start(self):
-        if self.ready:
+        if self.readyEpoch and self.readyDcgan:
             self.createRunFolderName()
             self.log.info('Starting Run {}'.format(self.cnt_runs))
             for i in range(self.max_epochs):
@@ -415,4 +435,13 @@ class ItsDcgan():
             self.log.info('Run {} completed.'.format(self.cnt_runs))
             self.cnt_runs += 1
         else:
-            self.log.error('DCGAN is not yet read.')
+            if self.readyEpoch:
+                self.log.error('Epoch not initialized.')
+            
+            self.log.error('DCGAN not initialized')
+
+if __name__ == "__main__":
+    print('Debugingmode ItsDcgan.')
+    g = ItsDcgan()
+    g.initDcgan()
+    g.start()

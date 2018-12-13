@@ -35,7 +35,7 @@ class ItsLogger(logging.LoggerAdapter):
     
 
     def infoEpoch(self, itsEpochInfo):
-        self.lgr.debug('Preparing epcoh info...')
+        self.lgr.debug('Preparing epoch info...')
         msg = 'Session {} : Max Epochs: {}, Image base: {}, Image Generation: {}'.format(
             itsEpochInfo.sessionNr,
             itsEpochInfo.max_epochs,
