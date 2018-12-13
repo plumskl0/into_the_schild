@@ -1,1 +1,1 @@
-from itslogging.ITSLogger import ITSLogger
+from itslogging.ItsLogger import ItsLogger

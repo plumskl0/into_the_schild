@@ -44,41 +44,57 @@ import imageio
 import logging
 import numpy as np
 import tensorflow as tf
-from itslogging import ITSLogger
+from itslogging import ItsLogger
+from itsmisc import ItsEpochInfo
 
 # Debugmodus
 debug = True
 
 
-class ITSdcgan():
+class ItsDcgan():
 
-    def __init__(self):
+    def __init__(self, sessionNr='0'):
 
         # Dateien
         self.fileConfig = 'its_dcgan.ini'
         self.logName = 'its_dcgan'
+        self.cnt_runs = 0
+        self.sessionNr = sessionNr
+        self.ready = False
 
-        self.log = ITSLogger(logName=self.logName, debug=debug)
+        self.log = ItsLogger(logName=self.logName, debug=debug)
 
         # Ordner
         self.root = './'
         self.dirItsImages = os.path.join(self.root, 'its_images')
-        self.dirRunImages = self.createRunFolderName()
+        self.dirSession = os.path.join(
+            self.dirItsImages,
+            'session_{}'.format(self.sessionNr)
+        )
 
         # Default Config Werte
         # TODO: Configwerte einbauen
-
+        self.sess = None
         self.checkFilesFolders()
         self.initEpoch()
 
+    def __del__(self):
+        self.log.debug('Killing ITSdcgan...')
+        if self.sess:
+            self.sess.close()
+            del self.sess
+        self.log.debug('ITSdcgan killed.')
+        del self.log
+
     def initEpoch(self, epochs=10, n_noise=64):
+        self.log.info('Initializing epoch...')
         self.max_epochs = epochs
         self.n_noise = 64
         self.index_in_epoch = 0
         self.epochs_completed = 0
 
         # Batchsize ist am Anfang so groß wie die Datenbasis
-        self.batch_size = 8
+        self.batch_size = 4
 
         # Informationsoutput alle Epochen
         self.stepsHistory = 50
@@ -89,11 +105,25 @@ class ITSdcgan():
 
         self.images, self.labels = self.generateData()
         self.imgShape = [None, 64, 64, 3]
-        
+
         # Anzahl der Bilder in der Basis
-        self.num_examples = len(self.images)
+        self.cntBaseImages = len(self.images)
+        self.log.info('Epoch initialized.')
+        # TODO: Epoch info printen
+        self.log.infoEpoch(self.getEpochInfo())
+
+    def getEpochInfo(self):
+        self.log.info('Generating Epoch Info.')
+        return ItsEpochInfo(
+            self.sessionNr,
+            self.max_epochs,
+            self.n_noise,
+            self.cntBaseImages,
+            self.cntGenerateImages
+        )
 
     def initDcgan(self):
+        self.log.info('Initializing DCGAN...')
         tf.reset_default_graph()
 
         self.x_in = tf.placeholder(
@@ -104,9 +134,9 @@ class ITSdcgan():
         self.keep_prob = tf.placeholder(dtype=tf.float32, name='keep_prob')
         self.is_training = tf.placeholder(dtype=tf.bool, name='is_training')
 
-        g = self.generator(self.noise, self.keep_prob, self.is_training)
+        self.g = self.generator(self.noise)
         d_real = self.discriminator(self.x_in)
-        d_fake = self.discriminator(g, reuse=True)
+        d_fake = self.discriminator(self.g, reuse=True)
 
         vars_g = [var for var in tf.trainable_variables(
         ) if var.name.startswith("generator")]
@@ -135,19 +165,24 @@ class ITSdcgan():
             self.optimizer_g = tf.train.RMSPropOptimizer(
                 learning_rate=0.00015).minimize(self.loss_g + g_reg, var_list=vars_g)
 
-    def createRunFolderName(self):
-        folders = []
+        self.sess = tf.Session()
+        self.sess.run(tf.global_variables_initializer())
+        self.ready = True
+        self.log.info('DCGAN initialized.')
 
+    def createRunFolderName(self):
+        self.log.info('Creating Session/Run Folder...')
+        folders = []
         if os.path.exists(self.dirItsImages):
             _, folders, _ = next(os.walk(self.dirItsImages))
 
-        name = 'gen_imgs_run_{}'.format(len(folders))
-        dirPath = os.path.join(self.dirItsImages, name)
-        return dirPath
+        name = 'gen_imgs_run_{}'.format(self.cnt_runs)
+        self.dirRunImages = os.path.join(self.dirSession, name)
+        self.createDir(self.dirItsImages, self.dirRunImages)
+
 
     def checkFilesFolders(self):
         self.log.info('Checking Files and Folders...')
-        self.createDir(self.dirItsImages, self.dirRunImages)
 
         if not os.path.exists(self.fileConfig):
             self.log.info('Creating File: {}'.format(self.fileConfig))
@@ -189,25 +224,25 @@ class ITSdcgan():
 
         return imgs, np.array(lbls)
 
-    def next_batch(self, batch_size):
+    def next_batch(self):
         start = self.index_in_epoch
-        self.index_in_epoch += batch_size
-        if self.index_in_epoch > self.num_examples:
+        self.index_in_epoch += self.batch_size
+        if self.index_in_epoch > self.cntBaseImages:
             # Finished epoch
             self.epochs_completed += 1
 
             # Shuffle data
-            perm = np.arange(self.num_examples)
+            perm = np.arange(self.cntBaseImages)
             np.random.shuffle(perm)
-            images = self.images[perm]
-            labels = self.labels[perm]
+            self.images = self.images[perm]
+            self.labels = self.labels[perm]
 
             # Start next epoch
             start = 0
-            index_in_epoch = batch_size
-            assert batch_size <= self.num_examples
-        end = index_in_epoch
-        return images[start:end], labels[start:end]
+            self.index_in_epoch = self.batch_size
+            assert self.batch_size <= self.cntBaseImages
+        end = self.index_in_epoch
+        return self.images[start:end], self.labels[start:end]
 
     def lrelu(self, x):
         return tf.maximum(x, tf.multiply(x, 0.2))
@@ -216,7 +251,7 @@ class ITSdcgan():
         eps = 1e-12
         return (-(x * tf.log(z + eps) + (1. - x) * tf.log(1. - z + eps)))
 
-    def discriminator(self, img_in, reuse=None, keep_prob=self.keep_prob):
+    def discriminator(self, img_in, reuse=None):
         activation = self.lrelu
         with tf.variable_scope('discriminator', reuse=reuse):
             self.log.debug('img_in : {}'.format(img_in))
@@ -224,18 +259,18 @@ class ITSdcgan():
             self.log.debug('reshaped img_in : {}'.format(x))
             x = tf.layers.conv2d(x, kernel_size=5, filters=64, strides=2,
                                  padding='same', activation=activation)
-            x = tf.layers.dropout(x, keep_prob)
+            x = tf.layers.dropout(x, self.keep_prob)
             x = tf.layers.conv2d(x, kernel_size=5, filters=64, strides=1,
                                  padding='same', activation=activation)
-            x = tf.layers.dropout(x, keep_prob)
+            x = tf.layers.dropout(x, self.keep_prob)
             x = tf.layers.conv2d(x, kernel_size=5, filters=64, strides=1,
                                  padding='same', activation=activation)
-            x = tf.layers.dropout(x, keep_prob)
+            x = tf.layers.dropout(x, self.keep_prob)
             x = tf.layers.dense(x, units=128, activation=activation)
             x = tf.layers.dense(x, units=1, activation=tf.nn.sigmoid)
         return x
 
-    def generator(self, z, keep_prob=self.keep_prob, is_training=self.is_training):
+    def generator(self, z):
         activation = self.lrelu
         momentum = 0.99
         with tf.variable_scope('generator', reuse=None):
@@ -243,8 +278,8 @@ class ITSdcgan():
             d1 = 4
             d2 = 3
             x = tf.layers.dense(x, units=d1*d1*d2, activation=activation)
-            x = tf.layers.dropout(x, keep_prob)
-            x = tf.contrib.layers.batch_norm(x, is_training=is_training,
+            x = tf.layers.dropout(x, self.keep_prob)
+            x = tf.contrib.layers.batch_norm(x, is_training=self.is_training,
                                              decay=momentum)
             x = tf.reshape(x, shape=[-1, d1, d1, d2])
 
@@ -255,31 +290,31 @@ class ITSdcgan():
             x = tf.layers.conv2d_transpose(x, kernel_size=5, filters=64,
                                            strides=2, padding='same',
                                            activation=activation)
-            x = tf.layers.dropout(x, keep_prob)
-            x = tf.contrib.layers.batch_norm(x, is_training=is_training,
+            x = tf.layers.dropout(x, self.keep_prob)
+            x = tf.contrib.layers.batch_norm(x, is_training=self.is_training,
                                              decay=momentum)
 
             # 32x32
             x = tf.layers.conv2d_transpose(x, kernel_size=5, filters=64,
                                            strides=2, padding='same',
                                            activation=activation)
-            x = tf.layers.dropout(x, keep_prob)
-            x = tf.contrib.layers.batch_norm(x, is_training=is_training,
+            x = tf.layers.dropout(x, self.keep_prob)
+            x = tf.contrib.layers.batch_norm(x, is_training=self.is_training,
                                              decay=momentum)
 
             # 64x64
             x = tf.layers.conv2d_transpose(x, kernel_size=5, filters=64,
                                            strides=2, padding='same',
                                            activation=activation)
-            x = tf.layers.dropout(x, keep_prob)
-            x = tf.contrib.layers.batch_norm(x, is_training=is_training,
+            x = tf.layers.dropout(x, self.keep_prob)
+            x = tf.contrib.layers.batch_norm(x, is_training=self.is_training,
                                              decay=momentum)
 
             x = tf.layers.conv2d_transpose(x, kernel_size=5, filters=64,
                                            strides=1, padding='same',
                                            activation=activation)
-            x = tf.layers.dropout(x, keep_prob)
-            x = tf.contrib.layers.batch_norm(x, is_training=is_training,
+            x = tf.layers.dropout(x, self.keep_prob)
+            x = tf.contrib.layers.batch_norm(x, is_training=self.is_training,
                                              decay=momentum)
             x = tf.layers.conv2d_transpose(x, kernel_size=5, filters=3,
                                            strides=1, padding='same',
@@ -287,11 +322,10 @@ class ITSdcgan():
             return x
 
     def generateImages(self, cnt):
-
         n = self.createNoise(cnt, self.n_noise)
 
         # Bild vom Generator erzeugen lassen
-        gen_img = sess.run(self.g, feed_dict={
+        gen_img = self.sess.run(self.g, feed_dict={
             self.noise: n, self.keep_prob: 1.0, self.is_training: False
         })
 
@@ -302,7 +336,8 @@ class ITSdcgan():
 
         self.createDir(dirEpoch)
 
-        self.log.info('Generating {} images in folder {}'.format(len(imgs), dirEpoch))
+        self.log.info('Generating {} images in folder {}'.format(
+            len(imgs), dirEpoch))
         # Konvertierung der Bilder
         imgs = (imgs * 255).round().astype(np.uint8)
 
@@ -315,74 +350,81 @@ class ITSdcgan():
     def createNoise(self, batch_size, n_noise):
         return np.random.uniform(0.0, 1.0, [batch_size, n_noise]).astype(np.float32)
 
-    def runDcganSession(self):
-        sess = tf.Session()
-        sess.run(tf.global_variables_initializer())
+    def start(self):
+        if self.ready:
+            self.createRunFolderName()
+            self.log.info('Starting Run {}'.format(self.cnt_runs))
+            for i in range(self.max_epochs):
 
-        for i in range(self.max_epochs):
+                train_d = True
+                train_g = True,
+                keep_prob_train = 0.6
 
-            train_d = True
-            train_g = True,
-            keep_prob_train = 0.6
+                n = self.createNoise(self.batch_size, self.n_noise)
 
-            n = self.createNoise(self.batch_size, self.n_noise)
+                batch = self.next_batch()[0]
 
-            batch = self.next_batch(self.batch_size)[0]
+                d_real_ls, d_fake_ls, g_ls, d_ls = self.sess.run(
+                    [self.loss_d_real, self.loss_d_fake,
+                    self.loss_g, self.loss_d],
+                    feed_dict={
+                        self.x_in: batch,
+                        self.noise: n,
+                        self.keep_prob: keep_prob_train,
+                        self.is_training: True
+                    })
 
-            d_real_ls, d_fake_ls, g_ls, d_ls = sess.run(
-                [self.loss_d_real, self.loss_d_fake,
-                 self.loss_g, self.loss_d],
-                feed_dict={
-                    self.x_in: batch,
-                    self.noise: n,
-                    self.keep_prob: keep_prob_train,
-                    self.is_training: True
-                })
+                d_real_ls = np.mean(d_real_ls)
+                d_fake_ls = np.mean(d_fake_ls)
 
-            d_real_ls = np.mean(d_real_ls)
-            d_fake_ls = np.mean(d_fake_ls)
+                # TODO: Warum gibt es die folgenden Zeilen
+                # die ergeben irgendwie keinen Sinn
+                # zumindest gerade
+                g_ls = g_ls
+                d_ls = d_ls
 
-            # TODO: Warum gibt es die folgenden Zeilen
-            # die ergeben irgendwie keinen Sinn
-            # zumindest gerade
-            g_ls = g_ls
-            d_ls = d_ls
+                if g_ls * 1.5 < d_ls:
+                    train_g = False
+                    pass
 
-            if g_ls * 1.5 < d_ls:
-                train_g = False
-                pass
+                if d_ls * 2 < g_ls:
+                    train_d = False
+                    pass
 
-            if d_ls * 2 < g_ls:
-                train_d = False
-                pass
+                if train_d:
+                    self.log.debug(
+                        'Epoch {} Training: Discriminator'.format(i)
+                    )
+                    self.sess.run(self.optimizer_d, feed_dict={
+                        self.noise: n,
+                        self.x_in: batch,
+                        self.keep_prob: keep_prob_train,
+                        self.is_training: True
+                    })
 
-            if train_d:
-                self.log.debug('Training: Discriminator')
-                sess.run(self.optimizer_d, feed_dict={
-                    self.noise: n,
-                    self.x_in: batch,
-                    self.keep_prob: keep_prob_train,
-                    self.is_training: True
-                })
+                if train_g:
+                    self.log.debug('Training: Generator')
+                    self.sess.run(self.optimizer_g, feed_dict={
+                        self.noise: n,
+                        self.keep_prob: keep_prob_train,
+                        self.is_training: True
+                    })
 
-            if train_g:
-                self.log.debug('Training: Generator')
-                sess.run(self.optimizer_g, feed_dict={
-                    self.noise: n,
-                    self.keep_prob: keep_prob_train,
-                    self.is_training: True
-                })
+                if not i % self.stepsHistory:
+                    # TODO: Hier kann eine Historienfunktion eingebaut werden
+                    self.log.debug(
+                        'Epoch: {}, d_ls: {}, g_ls: {}, d_real_ls: {}, d_fake_ls: {}'.format(
+                            i, d_ls, g_ls, d_real_ls, d_fake_ls
+                        ))
 
-            if not i % stepsHistory:
-                # TODO: Hier kann eine Historienfunktion eingebaut werden
-                self.log.debug(
-                    'Epoch: {}, d_ls: {}, g_ls: {}, d_real_ls: {}, d_fake_ls: {}'.format(
-                        i, d_ls, g_ls, d_real_ls, d_fake_ls
-                    ))
-
-            if not i % stepsImageGeneration:
-                # Bilder generieren
-                self.log.info('Epoch {}: Generating {} images'.format(
-                    i, cntGenerateImages))
-                imgs = self.generateImages(cntGenerateImages)
-                self.saveEpochImages(imgs, i)
+                if not i % self.stepsImageGeneration:
+                    # Bilder generieren
+                    self.log.info('Epoch {}: Generating {} images'.format(
+                        i, self.cntGenerateImages))
+                    imgs = self.generateImages(self.cntGenerateImages)
+                    self.saveEpochImages(imgs, i)
+            
+            self.log.info('Run {} completed.'.format(self.cnt_runs))
+            self.cnt_runs += 1
+        else:
+            self.log.error('DCGAN is not yet read.')

@@ -37,7 +37,7 @@ import numpy as np
 import configparser as cfgp
 from lxml import etree
 from datetime import datetime
-from itslogging import ITSLogger
+from itslogging import ItsLogger
 
 # Ordner
 root = './its_request'
@@ -76,7 +76,7 @@ XML_ATR_DATE_FORMAT = '%d-%m-%Y %H:%M:%S'
 class Requester:
 
     def __init__(self, debug=False):
-        self.logger = ITSLogger(
+        self.logger = ItsLogger(
             logName='its_requester',
             debug=debug)
 
