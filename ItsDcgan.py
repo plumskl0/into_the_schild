@@ -87,7 +87,7 @@ class ItsDcgan():
         del self.log
 
     def initEpoch(
-        self, epochs=10, n_noise=64, batch_size=4, 
+        self, epochs=10, n_noise=64, batch_size=4,
         stepsHistory=50, stepsImageGeneration=1000,
         cntGenerateImages=40
     ):
@@ -183,7 +183,6 @@ class ItsDcgan():
         name = 'gen_imgs_run_{}'.format(self.cnt_runs)
         self.dirRunImages = os.path.join(self.dirSession, name)
         self.createDir(self.dirItsImages, self.dirRunImages)
-
 
     def checkFilesFolders(self):
         self.log.info('Checking Files and Folders...')
@@ -370,7 +369,7 @@ class ItsDcgan():
 
                 d_real_ls, d_fake_ls, g_ls, d_ls = self.sess.run(
                     [self.loss_d_real, self.loss_d_fake,
-                    self.loss_g, self.loss_d],
+                     self.loss_g, self.loss_d],
                     feed_dict={
                         self.x_in: batch,
                         self.noise: n,
@@ -407,15 +406,7 @@ class ItsDcgan():
                     })
 
                 if train_g:
-<<<<<<< Updated upstream:ItsDcgan.py
-                    self.log.debug('Training: Generator')
-=======
-<<<<<<< HEAD:ItsDcgan.py
                     self.log.debug('\t  Training: Generator')
-=======
-                    self.log.debug('Training: Generator')
->>>>>>> 09517729a7b073a97ecacf14be1982dbade0d5d5:ItsDcgan.py
->>>>>>> Stashed changes:ItsDcgan.py
                     self.sess.run(self.optimizer_g, feed_dict={
                         self.noise: n,
                         self.keep_prob: keep_prob_train,
@@ -435,7 +426,7 @@ class ItsDcgan():
                         i, self.cntGenerateImages))
                     imgs = self.generateImages(self.cntGenerateImages)
                     self.saveEpochImages(imgs, i)
-            
+
             self.log.info('Run {} completed.'.format(self.cnt_runs))
             self.cnt_runs += 1
         else:
