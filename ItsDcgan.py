@@ -86,22 +86,26 @@ class ItsDcgan():
         self.log.debug('ITSdcgan killed.')
         del self.log
 
-    def initEpoch(self, epochs=10, n_noise=64):
+    def initEpoch(
+        self, epochs=10, n_noise=64, batch_size=4, 
+        stepsHistory=50, stepsImageGeneration=1000,
+        cntGenerateImages=40
+    ):
         self.log.info('Initializing epoch...')
         self.max_epochs = epochs
-        self.n_noise = 64
+        self.n_noise = n_noise
         self.index_in_epoch = 0
         self.epochs_completed = 0
 
         # Batchsize ist am Anfang so groß wie die Datenbasis
-        self.batch_size = 4
+        self.batch_size = batch_size
 
         # Informationsoutput alle Epochen
-        self.stepsHistory = 50
-        self.stepsImageGeneration = 1000
+        self.stepsHistory = stepsHistory
+        self.stepsImageGeneration = stepsImageGeneration
 
         # Anzahl der Generierten Bilder pro ImageGeneration
-        self.cntGenerateImages = 35
+        self.cntGenerateImages = cntGenerateImages
 
         self.images, self.labels = self.generateData()
         self.imgShape = [None, 64, 64, 3]
@@ -403,7 +407,15 @@ class ItsDcgan():
                     })
 
                 if train_g:
+<<<<<<< Updated upstream:ItsDcgan.py
                     self.log.debug('Training: Generator')
+=======
+<<<<<<< HEAD:ItsDcgan.py
+                    self.log.debug('\t  Training: Generator')
+=======
+                    self.log.debug('Training: Generator')
+>>>>>>> 09517729a7b073a97ecacf14be1982dbade0d5d5:ItsDcgan.py
+>>>>>>> Stashed changes:ItsDcgan.py
                     self.sess.run(self.optimizer_g, feed_dict={
                         self.noise: n,
                         self.keep_prob: keep_prob_train,
