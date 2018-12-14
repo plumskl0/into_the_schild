@@ -40,6 +40,7 @@
 '''
 
 import os
+import time
 import imageio
 import logging
 import numpy as np
@@ -49,7 +50,6 @@ from itsmisc import ItsEpochInfo, ItsEpochLoss
 
 # Debugmodus
 debug = True
-
 
 class ItsDcgan():
 
@@ -93,6 +93,7 @@ class ItsDcgan():
         self.n_noise = n_noise
         self.index_in_epoch = 0
         self.epochs_completed = 0
+        self.epochPrintSteps = 2
 
         # Batchsize ist am Anfang so groß wie die Datenbasis
         self.batch_size = batch_size
@@ -109,6 +110,7 @@ class ItsDcgan():
         self.checkFilesFolders()
 
         self.images, self.labels = self.generateBaseData()
+        # Erst mal noch hardcoded
         self.imgShape = [None, 64, 64, 3]
 
         # Anzahl der Bilder in der Basis
@@ -126,7 +128,7 @@ class ItsDcgan():
             self.createDir(self.dirBaseImgs)
 
     def getEpochInfo(self):
-        self.log.info('Generating Epoch Info.')
+        self.log.info('Generating EpochInfo.')
         return ItsEpochInfo(
             self.sessionNr,
             self.max_epochs,
@@ -197,14 +199,15 @@ class ItsDcgan():
                 os.makedirs(d)
 
     def generateBaseData(self):
-
+        self.log.info('Loading base images...')
         imgs, lbls = self.loadBaseDir()
+        self.log.info('Loaded {} images.'.format(len(imgs)))
 
         # Bilder von 0-255 auf 0-1 bringen
         imgs = np.array(imgs)
         imgs = imgs.astype(np.float32)
         imgs = np.multiply(imgs, 1.0 / 255.0)
-
+        
         return imgs, np.array(lbls)
 
     def loadBaseDir(self):
@@ -368,7 +371,11 @@ class ItsDcgan():
         if self.readyEpoch and self.readyDcgan:
             self.createRunFolderName()
             self.log.info('Starting Run {}'.format(self.cnt_runs))
+            start, end = None, None
             for i in range(self.max_epochs):
+                if i % self.epochPrintSteps:
+                    self.log.info('Starting Epoch {}'.format(i))
+                    start = time.time()
 
                 train_d = True
                 train_g = True,
@@ -406,9 +413,7 @@ class ItsDcgan():
                     pass
 
                 if train_d:
-                    self.log.debug(
-                        'Epoch {} Training: Discriminator'.format(i)
-                    )
+                    self.log.debug('Training: Discriminator')
                     self.sess.run(self.optimizer_d, feed_dict={
                         self.noise: n,
                         self.x_in: batch,
@@ -417,7 +422,7 @@ class ItsDcgan():
                     })
 
                 if train_g:
-                    self.log.debug('\t  Training: Generator')
+                    self.log.debug('Training: Generator')
                     self.sess.run(self.optimizer_g, feed_dict={
                         self.noise: n,
                         self.keep_prob: keep_prob_train,
@@ -441,6 +446,10 @@ class ItsDcgan():
                         imgs = self.generateImages(self.cntGenerateImages)
                         self.saveEpochImages(imgs, i)
 
+                if i % self.epochPrintSteps:
+                    end = time.time() - start
+                    self.log.info('Epoch {} completed in {}.'.format(i, end))
+
             self.log.info('Run {} completed.'.format(self.cnt_runs))
             self.cnt_runs += 1
         else:
@@ -453,6 +462,7 @@ class ItsDcgan():
 if __name__ == "__main__":
     print('Debugingmode ItsDcgan.')
     g = ItsDcgan()
-    g.initEpoch(stepsHistory=4, enableImageGeneration=False, cntGenerateImages=10)
+    g.initEpoch(stepsHistory=1, enableImageGeneration=True,
+                cntGenerateImages=5)
     g.initDcgan()
     g.start()
