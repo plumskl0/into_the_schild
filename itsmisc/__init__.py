@@ -1,2 +1,3 @@
 from itsmisc.ItsEpochInfo import ItsEpochInfo
-from itsmisc.ItsEpochLoss import ItsEpochLoss
+from itsmisc.ItsSessionInfo import ItsSessionInfo
+from itsmisc.ItsRequestInfo import ItsRequestInfo

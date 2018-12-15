@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-    Logger für unser Projekt.
+    Dummy Logger für unser Projekt.
 '''
 import logging
 
@@ -22,7 +22,7 @@ class ItsLogger(logging.LoggerAdapter):
             self.handler = logging.FileHandler(logName+'.log')
 
         self.handler.setFormatter(logFormat)
-        
+
         # Logger erzeugen
         self.lgr = logging.getLogger(logName)
         self.lgr.setLevel(level)
@@ -33,38 +33,49 @@ class ItsLogger(logging.LoggerAdapter):
         self.lgr.removeHandler(self.handler)
         self.handler.close()
 
-    def infoEpoch(self, itsEpochInfo):
-        self.lgr.debug('Preparing EpochInfo...')
-        msg = 'Session: {}, Max Epochs: {}, Image base: {}, Image Generation: {}'.format(
-            itsEpochInfo.sessionNr,
-            itsEpochInfo.max_epochs,
-            itsEpochInfo.cntBaseImages,
-            itsEpochInfo.cntGenerateImages
-        )
-        self.lgr.info(msg)
+    def debugRequestInfo(self, itsRequestInfo):
+        self.lgr.debug('Session {}, Epoch {}:'.format(
+            itsRequestInfo.sessionNr,
+            itsRequestInfo.epoch
+        ))
 
-    def debugEpochLosses(self, epochLoss):
-        self.lgr.debug('Preparing epoch loss..')
+        self.lgr.debug('JSON result: \n {}'.format(
+            itsRequestInfo.json_result
+        ))
 
+        if itsRequestInfo.json_result == -1:
+            nn_class = -1
+        else:
+            nn_class = itsRequestInfo.json_result[0]['class']
+
+        self.lgr.debug('Classified as {} with {} confidence.'.format(
+            nn_class,
+            itsRequestInfo.max_confidence
+        ))
+        # Ausgelassen:
+        # reqInfo.img_array
+        # reqInfo.img_dtype
+
+    def debugEpochInfo(self, itsEpochInfo):
         self.lgr.debug(' Session {}, Epoch {}:'.rjust(24, ' ').format(
-            epochLoss.sessionNr,
-            epochLoss.epoch
+            itsEpochInfo.sessionNr,
+            itsEpochInfo.epoch
         ))
 
         self.lgr.debug('Discriminator loss:'.rjust(22, ' ') + '\t{}'.format(
-            epochLoss.d_ls
+            itsEpochInfo.d_ls
         ))
 
         self.lgr.debug('Generator loss:'.rjust(22, ' ') + '\t{}'.format(
-            epochLoss.g_ls
+            itsEpochInfo.g_ls
         ))
 
         self.lgr.debug('Disc real loss:'.rjust(22, ' ') + '\t{}'.format(
-            epochLoss.d_real_ls
+            itsEpochInfo.d_real_ls
         ))
 
         self.lgr.debug('Disc fake loss:'.rjust(22, ' ') + '\t{}'.format(
-            epochLoss.d_fake_ls
+            itsEpochInfo.d_fake_ls
         ))
 
 
