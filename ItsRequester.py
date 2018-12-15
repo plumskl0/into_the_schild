@@ -27,6 +27,7 @@
 import os
 import time
 import json
+import random
 import imageio
 import requests
 import numpy as np
@@ -34,6 +35,7 @@ import configparser as cfgp
 from lxml import etree
 from datetime import datetime
 from itslogging import ItsLogger
+from itsmisc import ItsRequestInfo
 
 # Ordner
 root = './its_request'
@@ -56,7 +58,7 @@ PARAM_DEF_KEY_VAL = 'Api-Key einfuegen'
 PARAM_DELAY = 'delay'
 PARAM_XML = 'xml'
 # Alle 10 Sekunden auf neue Dateien prüfen
-PARAM_DEF_DELAY_VAL = 10
+PARAM_DEF_DELAY_VAL = 60
 PARAM_DEF_XML_VAL = False
 
 # XML Elemente und Attribute
@@ -69,13 +71,15 @@ XML_ATR_DATE = 'date'
 XML_ATR_DTYPE = 'dtype'
 XML_ATR_DATE_FORMAT = '%d-%m-%Y %H:%M:%S'
 
-class Requester:
+
+class ItsRequester:
 
     def __init__(self, debug=False):
         self.logger = ItsLogger(
             logName='its_requester',
             debug=debug)
 
+        self.debug = debug
         # Um beim ersten Start eine Beispiel XML zu erzeugen
         self.xmlHistory = True
         self.checkFilesFolders()
@@ -91,7 +95,8 @@ class Requester:
             http = True
         else:
             self.logger.error('No API-Key defined in requester.ini')
-            self.logger.info('No HTTP Requests possible. Please specify API-Key.')
+            self.logger.info(
+                'No HTTP Requests possible. Please specify API-Key.')
 
         return http
 
@@ -156,18 +161,57 @@ class Requester:
         return url, key, delay, xmlHistory
 
     def sendRequest(self, *imgs):
+        self.logger.debug('Sending request for {} Images...'.format(len(imgs)))
         results = []
-        
+
         if self.httpClassification:
             myUrl = self.url
             myData = {PARAM_KEY: self.key}
 
+            send = False
+            firstWait = True
             for img in imgs:
                 myFiles = {'image': img}
+                time.sleep(1)
+                # while not send:
                 res = requests.post(myUrl, data=myData, files=myFiles)
+                    # print(res.status_code)
+                    # if res.status_code == requests.codes.too_many:
+                    #     if firstWait:
+                    #         self.logger.error('Too many requests waiting for {}s.'.format(self.delay))
+                    #         time.sleep(self.delay)
+                    #         firstWait = False
+                    #     else:
+                    #         rand = random.randint(1,10)
+                    #         self.logger.error('Too many requests waiting for {}s.'.format(rand))
+                    #         time.sleep(rand)
+                    # if res.ok:
+                    #     send = True
+                    #     firstWait = True
+                reqInfo = self.getRequestInfoForResult(res, img)
                 results.append(res)
 
+                if self.debug:
+                    self.logger.infoRequestInfo(reqInfo)
+
         return results
+
+    def getRequestInfoForResult(self, result, img):
+        reqInfo = ItsRequestInfo()
+
+        if result.ok:
+            nn_class, max_confidence = self.getBestClassFromResult(result)
+            reqInfo.nn_class = nn_class
+            reqInfo.max_confidence = max_confidence
+            reqInfo.json_result = result.json()
+
+        reqInfo.img_array = np.fromfile(img, dtype=np.uint8)
+        reqInfo.img_dtype = reqInfo.img_array.dtype.name
+        return reqInfo
+
+    def getBestClassFromResult(self, result):
+        jRes = result.json()
+        return jRes[0]['class'], jRes[0]['confidence']
 
     def createHistoryTemplate(self):
         self.logger.debug('Creating History Template: {}'.format(XML_ROOT))
@@ -212,19 +256,19 @@ class Requester:
             root = etree.fromstring(hisFile.read())
         return root
 
-    def sendDirRequests(self):
+    def sendDir(self):
         if self.httpClassification:
             _, _, files = next(os.walk(dirIn))
 
             self.logger.info('Files to process {}'.format(len(files)))
-
+            nr = 1
             for f in files:
                 # Dateiname/pfad erzeugen
                 imgPath = os.path.join(dirIn, f)
 
                 # Nur PNG Bilder einlesen
                 if 'png' in imgPath.lower():
-                    self.logger.info('Opening file {}'.format(imgPath))
+                    self.logger.debug('Opening file {}'.format(imgPath))
                     img = open(imgPath, 'rb')
 
                     response = self.sendRequest(img)[0]
@@ -233,11 +277,12 @@ class Requester:
                     dest = ''
                     now = datetime.now()
                     # Aktuelle Zeit für den Dateinamen nutzen
-                    newName = '{}.png'.format(
-                        now.strftime('%Y-%m-%d_%H_%M_%S'))
+                    newName = '{}_{}.png'.format(
+                        now.strftime('%Y-%m-%d_%H_%M_%S'), nr)
+                    nr += 1
 
                     if response.ok:
-                        self.logger.info('Image sucessfully transfered')
+                        self.logger.debug('Image sucessfully transfered')
 
                         # Response verarbeiten
                         classArr = response.json()
@@ -252,23 +297,20 @@ class Requester:
                         dest = os.path.join(dirDone, newName)
                     else:
                         # Dateinamen done/error Ordner
-                        self.logger.error('Request error: {}'.format(response.text))
+                        self.logger.error(
+                            'Request error: {}'.format(response.text))
                         dest = os.path.join(dirError, newName)
 
-                    self.logger.info('Moving file to: {}'.format(dest))
+                    self.logger.debug('Moving file to: {}'.format(dest))
                     os.rename(imgPath, dest)
                 else:
-                    self.logger.info('File "{}" is not an PNG moving to trash'.format(f))
+                    self.logger.debug(
+                        'File "{}" is not an PNG moving to trash'.format(f))
 
                     trash = os.path.join(dirTrash, f)
                     os.rename(imgPath, trash)
 
-                # Eine Sekunde warten damit die Requests nicht zu schnell bearbeitet werden.
-                # Evtl. unnötig, da die verarbeitung bereits länger als eine Sekunde dauert
-                time.sleep(1)
-
-            time.sleep(self.delay)
 
 if __name__ == '__main__':
     print("Starting Debugmode Requester...")
-    Requester(debug=True)
+    r = ItsRequester(debug=True)

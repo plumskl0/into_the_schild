@@ -15,7 +15,7 @@ class ItsLogger(logging.LoggerAdapter):
         self.handler = None
         if debug:
             # Beim Debugging alles im Terminal ausgeben
-            level = logging.DEBUG
+            level = logging.INFO
             self.handler = logging.StreamHandler()
         else:
             # Ohne Debugging INFO Level in Datei schreiben
@@ -33,26 +33,22 @@ class ItsLogger(logging.LoggerAdapter):
         self.lgr.removeHandler(self.handler)
         self.handler.close()
 
-    def debugRequestInfo(self, itsRequestInfo):
-        self.lgr.debug('Session {}, Epoch {}:'.format(
-            itsRequestInfo.sessionNr,
-            itsRequestInfo.epoch
+    def infoRequestInfo(self, itsRequestInfo):
+
+        self.lgr.info('Classification:')
+        self.lgr.info('{}\t{:2.2f}%'.format(
+            itsRequestInfo.nn_class,
+            itsRequestInfo.max_confidence*100
         ))
 
-        self.lgr.debug('JSON result: \n {}'.format(
-            itsRequestInfo.json_result
-        ))
-
-        if itsRequestInfo.json_result == -1:
-            nn_class = -1
-        else:
-            nn_class = itsRequestInfo.json_result[0]['class']
-
-        self.lgr.debug('Classified as {} with {} confidence.'.format(
-            nn_class,
-            itsRequestInfo.max_confidence
-        ))
+        # self.lgr.info('Session {}, Epoch {}:'.format(
+        #     itsRequestInfo.sessionNr,
+        #     itsRequestInfo.epoch
+        # ))
         # Ausgelassen:
+        # self.lgr.debug('JSON result: \n {}'.format(
+        #     itsRequestInfo.json_result
+        # ))
         # reqInfo.img_array
         # reqInfo.img_dtype
 
