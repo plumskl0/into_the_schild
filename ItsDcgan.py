@@ -46,10 +46,11 @@ import logging
 import numpy as np
 import tensorflow as tf
 from itslogging import ItsLogger
-from itsmisc import ItsEpochInfo, ItsEpochLoss
+from itsmisc import ItsEpochInfo
 
 # Debugmodus
 debug = True
+
 
 class ItsDcgan():
 
@@ -117,7 +118,7 @@ class ItsDcgan():
         self.cntBaseImages = len(self.images)
         if self.cntBaseImages:
             self.log.info('Epoch initialized.')
-            self.log.infoEpoch(self.getEpochInfo())
+            self.log.debugEpochInfo(self.getEpochInfo())
             self.readyEpoch = True
         else:
             self.log.error(
@@ -127,14 +128,16 @@ class ItsDcgan():
         if not os.path.exists(self.dirBaseImgs):
             self.createDir(self.dirBaseImgs)
 
-    def getEpochInfo(self):
-        self.log.info('Generating EpochInfo.')
+    def getEpochInfo(
+        self, epoch=-1, d_ls=-1,
+        g_ls=-1, d_real_ls=-1,
+        d_fake_ls=-1
+    ):
+        self.log.info('Generating EpochInfo...')
         return ItsEpochInfo(
             self.sessionNr,
-            self.max_epochs,
-            self.n_noise,
-            self.cntBaseImages,
-            self.cntGenerateImages
+            epoch, d_ls, g_ls,
+            d_real_ls, d_fake_ls
         )
 
     def initDcgan(self):
@@ -148,7 +151,8 @@ class ItsDcgan():
                 dtype=tf.float32, shape=[None, self.n_noise])
 
             self.keep_prob = tf.placeholder(dtype=tf.float32, name='keep_prob')
-            self.is_training = tf.placeholder(dtype=tf.bool, name='is_training')
+            self.is_training = tf.placeholder(
+                dtype=tf.bool, name='is_training')
 
             self.g = self.generator(self.noise)
             d_real = self.discriminator(self.x_in)
@@ -210,7 +214,7 @@ class ItsDcgan():
         imgs = np.array(imgs)
         imgs = imgs.astype(np.float32)
         imgs = np.multiply(imgs, 1.0 / 255.0)
-        
+
         return imgs, np.array(lbls)
 
     def loadBaseDir(self):
@@ -367,9 +371,6 @@ class ItsDcgan():
     def createNoise(self, batch_size, n_noise):
         return np.random.uniform(0.0, 1.0, [batch_size, n_noise]).astype(np.float32)
 
-    def createEpochLoss(self, sessionNr, epoch, d_ls, g_ls, d_real_ls, d_fake_ls):
-        return ItsEpochLoss(sessionNr, epoch, d_ls, g_ls, d_real_ls, d_fake_ls)
-
     def start(self):
         if self.readyEpoch and self.readyDcgan:
             self.createRunFolderName()
@@ -433,14 +434,13 @@ class ItsDcgan():
                     })
 
                 if not i % self.stepsHistory:
-
-                    eLoss = self.createEpochLoss(
-                        self.sessionNr,
+                    
+                    eLoss = self.getEpochInfo(
                         i, d_ls, g_ls,
                         d_real_ls, d_fake_ls
                     )
 
-                    self.log.debugEpochLosses(eLoss)
+                    self.log.debugEpochInfo(eLoss)
 
                     # Bilder generieren
                     if self.enableImageGeneration:
