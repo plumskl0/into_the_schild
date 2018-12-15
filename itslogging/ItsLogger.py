@@ -62,6 +62,10 @@ class ItsLogger(logging.LoggerAdapter):
             itsEpochInfo.epoch
         ))
 
+        self.lgr.debug('Batch size:'.rjust(22, ' ') + '\t{:1d}'.format(
+            itsEpochInfo.batch_size
+        ))
+
         self.lgr.debug('Discriminator loss:'.rjust(22, ' ') + '\t{}'.format(
             itsEpochInfo.d_ls
         ))

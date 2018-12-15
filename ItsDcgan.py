@@ -85,7 +85,7 @@ class ItsDcgan():
         del self.log
 
     def initEpoch(
-        self, epochs=10, n_noise=64, batch_size=4,
+        self, epochs=10, n_noise=64, batch_size=2,
         stepsHistory=50, enableImageGeneration=False,
         cntGenerateImages=40
     ):
@@ -118,6 +118,10 @@ class ItsDcgan():
         self.cntBaseImages = len(self.images)
         if self.cntBaseImages:
             self.log.info('Epoch initialized.')
+            # Fehler abfangen falls man weniger Bilder als Batchsize hat
+            if self.batch_size > self.cntBaseImages:
+                self.batch_size = self.cntBaseImages
+
             self.log.debugEpochInfo(self.getEpochInfo())
             self.readyEpoch = True
         else:
@@ -135,8 +139,9 @@ class ItsDcgan():
     ):
         self.log.info('Generating EpochInfo...')
         return ItsEpochInfo(
-            self.sessionNr,
-            epoch, d_ls, g_ls,
+            self.sessionNr, epoch,
+            self.batch_size,
+            d_ls, g_ls,
             d_real_ls, d_fake_ls
         )
 
@@ -434,7 +439,7 @@ class ItsDcgan():
                     })
 
                 if not i % self.stepsHistory:
-                    
+
                     eLoss = self.getEpochInfo(
                         i, d_ls, g_ls,
                         d_real_ls, d_fake_ls
@@ -451,7 +456,7 @@ class ItsDcgan():
 
                 if i % self.epochPrintSteps:
                     end = time.time() - start
-                    self.log.info('Epoch {} completed in {}.'.format(i, end))
+                    self.log.info('Epoch {} completed in {:2.3f}s.'.format(i, end))
 
             self.log.info('Run {} completed.'.format(self.cnt_runs))
             self.cnt_runs += 1
