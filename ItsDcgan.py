@@ -138,52 +138,55 @@ class ItsDcgan():
         )
 
     def initDcgan(self):
-        self.log.info('Initializing DCGAN...')
-        tf.reset_default_graph()
+        if self.readyEpoch:
+            self.log.info('Initializing DCGAN...')
+            tf.reset_default_graph()
 
-        self.x_in = tf.placeholder(
-            dtype=tf.float32, shape=self.imgShape, name='x_in')
-        self.noise = tf.placeholder(
-            dtype=tf.float32, shape=[None, self.n_noise])
+            self.x_in = tf.placeholder(
+                dtype=tf.float32, shape=self.imgShape, name='x_in')
+            self.noise = tf.placeholder(
+                dtype=tf.float32, shape=[None, self.n_noise])
 
-        self.keep_prob = tf.placeholder(dtype=tf.float32, name='keep_prob')
-        self.is_training = tf.placeholder(dtype=tf.bool, name='is_training')
+            self.keep_prob = tf.placeholder(dtype=tf.float32, name='keep_prob')
+            self.is_training = tf.placeholder(dtype=tf.bool, name='is_training')
 
-        self.g = self.generator(self.noise)
-        d_real = self.discriminator(self.x_in)
-        d_fake = self.discriminator(self.g, reuse=True)
+            self.g = self.generator(self.noise)
+            d_real = self.discriminator(self.x_in)
+            d_fake = self.discriminator(self.g, reuse=True)
 
-        vars_g = [var for var in tf.trainable_variables(
-        ) if var.name.startswith("generator")]
-        vars_d = [var for var in tf.trainable_variables(
-        ) if var.name.startswith("discriminator")]
+            vars_g = [var for var in tf.trainable_variables(
+            ) if var.name.startswith("generator")]
+            vars_d = [var for var in tf.trainable_variables(
+            ) if var.name.startswith("discriminator")]
 
-        d_reg = tf.contrib.layers.apply_regularization(
-            tf.contrib.layers.l2_regularizer(1e-6), vars_d)
-        g_reg = tf.contrib.layers.apply_regularization(
-            tf.contrib.layers.l2_regularizer(1e-6), vars_g)
+            d_reg = tf.contrib.layers.apply_regularization(
+                tf.contrib.layers.l2_regularizer(1e-6), vars_d)
+            g_reg = tf.contrib.layers.apply_regularization(
+                tf.contrib.layers.l2_regularizer(1e-6), vars_g)
 
-        self.loss_d_real = self.binary_cross_entropy(
-            tf.ones_like(d_real), d_real)
-        self.loss_d_fake = self.binary_cross_entropy(
-            tf.zeros_like(d_fake), d_fake)
+            self.loss_d_real = self.binary_cross_entropy(
+                tf.ones_like(d_real), d_real)
+            self.loss_d_fake = self.binary_cross_entropy(
+                tf.zeros_like(d_fake), d_fake)
 
-        self.loss_g = tf.reduce_mean(self.binary_cross_entropy(
-            tf.ones_like(d_fake), d_fake))
-        self.loss_d = tf.reduce_mean(
-            0.5 * (self.loss_d_real + self.loss_d_fake))
+            self.loss_g = tf.reduce_mean(self.binary_cross_entropy(
+                tf.ones_like(d_fake), d_fake))
+            self.loss_d = tf.reduce_mean(
+                0.5 * (self.loss_d_real + self.loss_d_fake))
 
-        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        with tf.control_dependencies(update_ops):
-            self.optimizer_d = tf.train.RMSPropOptimizer(
-                learning_rate=0.00015).minimize(self.loss_d + d_reg, var_list=vars_d)
-            self.optimizer_g = tf.train.RMSPropOptimizer(
-                learning_rate=0.00015).minimize(self.loss_g + g_reg, var_list=vars_g)
+            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            with tf.control_dependencies(update_ops):
+                self.optimizer_d = tf.train.RMSPropOptimizer(
+                    learning_rate=0.00015).minimize(self.loss_d + d_reg, var_list=vars_d)
+                self.optimizer_g = tf.train.RMSPropOptimizer(
+                    learning_rate=0.00015).minimize(self.loss_g + g_reg, var_list=vars_g)
 
-        self.sess = tf.Session()
-        self.sess.run(tf.global_variables_initializer())
-        self.readyDcgan = True
-        self.log.info('DCGAN initialized.')
+            self.sess = tf.Session()
+            self.sess.run(tf.global_variables_initializer())
+            self.readyDcgan = True
+            self.log.info('DCGAN initialized.')
+        else:
+            self.log.error('DCGAN not initialized. Epoch not yet ready.')
 
     def createRunFolderName(self):
         self.log.info('Creating Session/Run Folder...')
@@ -453,10 +456,10 @@ class ItsDcgan():
             self.log.info('Run {} completed.'.format(self.cnt_runs))
             self.cnt_runs += 1
         else:
-            if self.readyEpoch:
-                self.log.error('Epoch not initialized.')
+            if not self.readyEpoch:
+                self.log.error('Start error: Epoch not initialized.')
 
-            self.log.error('DCGAN not initialized')
+            self.log.error('Start error: DCGAN not initialized')
 
 
 if __name__ == "__main__":
