@@ -19,10 +19,14 @@ class ItsSessionInfo():
         max_epoch = -1,
         info_text = -1,
         enableImageGeneration = -1,
-        cntGenerateImages = -1
+        cntGenerateImages = -1,
+        batch_size = -1,
+        debug=True
     ):
         self.sessionNr = sessionNr
         self.max_epoch = max_epoch
         self.info_text = info_text
         self.enableImageGeneration = enableImageGeneration
         self.cntGenerateImages = cntGenerateImages
+        self.batch_size = batch_size
+        self.debug = debug

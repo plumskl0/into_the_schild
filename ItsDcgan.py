@@ -48,26 +48,49 @@ import tensorflow as tf
 from itslogging import ItsLogger
 from itsmisc import ItsEpochInfo
 
-# Debugmodus
-debug = True
+dirItsImages = './its_images'
 
 
 class ItsDcgan():
 
-    def __init__(self, sessionNr='0'):
+    def __init__(self, *args, **kwargs):
+        if kwargs is not None:
+            if len(kwargs) == 2:
+                # sessionNr und debug erhalten
+                self.__init(kwargs['sessionNr'], kwargs['debug'])
 
-        # Dateien
+        if len(args) == 1:
+            # Session Objekt
+            self.__initSessionInfo(args[0])
+        elif len(args) == 2:
+            # Zwei Parameter
+            self.__init(args[0], args[1])
+        else:
+            # Zu faul um gerade über den Logger nachzudenken
+            print('Incorrect ItsDcgan() Parametes.')
+            print('Starting default init.')
+            self.__init()
+
+    def __initSessionInfo(self, itsSessionInfo):
+        self.__init(itsSessionInfo.sessionNr)
+        self.initEpoch(
+            epochs=itsSessionInfo.max_epoch,
+            batch_size=itsSessionInfo.batch_size,
+            enableImageGeneration=itsSessionInfo.enableImageGeneration,
+            cntGenerateImages=itsSessionInfo.cntGenerateImages
+        )
+
+    def __init(self, sessionNr='0', debug=True):
         self.logName = 'its_dcgan'
+        self.log = ItsLogger(logName=self.logName, debug=debug)
         self.cnt_runs = 0
         self.sessionNr = sessionNr
         self.readyDcgan = False
         self.readyEpoch = False
-
-        self.log = ItsLogger(logName=self.logName, debug=debug)
+        self.readyRunFolder = False
 
         # Ordner
-        self.root = './'
-        self.dirItsImages = os.path.join(self.root, 'its_images')
+        self.dirItsImages = './its_images'
         self.dirSession = os.path.join(
             self.dirItsImages,
             'session_{}'.format(self.sessionNr)
@@ -108,7 +131,7 @@ class ItsDcgan():
         else:
             self.cntGenerateImages = 0
 
-        self.checkFilesFolders()
+        self.checkFilesAndFolders()
 
         self.images, self.labels = self.generateBaseData()
         # Erst mal noch hardcoded
@@ -128,7 +151,7 @@ class ItsDcgan():
             self.log.error(
                 'Epoch could not be initalized: No BaseImages found')
 
-    def checkFilesFolders(self):
+    def checkFilesAndFolders(self):
         if not os.path.exists(self.dirBaseImgs):
             self.createDir(self.dirBaseImgs)
 
@@ -197,12 +220,13 @@ class ItsDcgan():
         else:
             self.log.error('DCGAN not initialized. Epoch not yet ready.')
 
-    def createRunFolderName(self):
+    def createRunFolder(self):
         self.log.info('Creating Session/Run Folder...')
 
         name = 'gen_imgs_run_{}'.format(self.cnt_runs)
         self.dirRunImages = os.path.join(self.dirSession, name)
         self.createDir(self.dirItsImages, self.dirRunImages, self.dirBaseImgs)
+        return self.dirRunImages
 
     def createDir(self, *args):
         for d in args:
@@ -376,9 +400,14 @@ class ItsDcgan():
     def createNoise(self, batch_size, n_noise):
         return np.random.uniform(0.0, 1.0, [batch_size, n_noise]).astype(np.float32)
 
+    def prepareRunFolder(self):
+        self.readyRunFolder = True
+        return self.createRunFolder()
+
     def start(self):
         if self.readyEpoch and self.readyDcgan:
-            self.createRunFolderName()
+            if not self.readyRunFolder:
+                self.createRunFolder()
             self.log.info('Starting Run {}'.format(self.cnt_runs))
             start, end = None, None
             for i in range(self.max_epochs):
@@ -456,7 +485,8 @@ class ItsDcgan():
 
                 if i % self.epochPrintSteps:
                     end = time.time() - start
-                    self.log.info('Epoch {} completed in {:2.3f}s.'.format(i, end))
+                    self.log.info(
+                        'Epoch {} completed in {:2.3f}s.'.format(i, end))
 
             self.log.info('Run {} completed.'.format(self.cnt_runs))
             self.cnt_runs += 1
@@ -466,11 +496,18 @@ class ItsDcgan():
 
             self.log.error('Start error: DCGAN not initialized')
 
-
+# Fürs Debugging und Testen
+from itsmisc import ItsSessionInfo
 if __name__ == "__main__":
     print('Debugingmode ItsDcgan.')
-    g = ItsDcgan()
-    g.initEpoch(stepsHistory=1, enableImageGeneration=True,
-                cntGenerateImages=5)
-    g.initDcgan()
-    g.start()
+
+    info = ItsSessionInfo()
+
+    info.sessionNr = 1
+    info.max_epoch = 10
+    info.info_text = 'Debug Session with no SQL connection'
+    info.enableImageGeneration = True
+    info.cntGenerateImages = 10
+    info.batch_size = 3
+
+    g = ItsDcgan(info)

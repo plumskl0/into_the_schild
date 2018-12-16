@@ -25,6 +25,7 @@
 
 '''
 import os
+import re
 import time
 import json
 import random
@@ -34,20 +35,21 @@ import numpy as np
 import configparser as cfgp
 from lxml import etree
 from datetime import datetime
+from threading import Thread
 from itslogging import ItsLogger
 from itsmisc import ItsRequestInfo
 
 # Ordner
-root = './its_request'
-dirIn = os.path.join(root, 'req_in')
+dirItsRequests = './its_request'
+dirIn = os.path.join(dirItsRequests, 'req_in')
 dirDone = os.path.join(dirIn, 'done')
 dirTrash = os.path.join(dirIn, 'trash')
 dirError = os.path.join(dirDone, 'error')
-dirOut = os.path.join(root, 'req_out')
+dirOut = os.path.join(dirItsRequests, 'req_out')
 
 # Dateien
 fileConfig = 'requester.ini'
-fileHistory = os.path.join(root, 'req_history.xml')
+fileHistory = os.path.join(dirItsRequests, 'req_history.xml')
 fileLog = 'requester.log'
 
 # Default Config Werte
@@ -82,7 +84,8 @@ class ItsRequester:
         self.debug = debug
         # Um beim ersten Start eine Beispiel XML zu erzeugen
         self.xmlHistory = True
-        self.checkFilesFolders()
+        self.checkFilesAndFolders()
+        self.sessionInfo = None
 
         self.url, self.key, self.delay, self.xmlHistory = self.getConfigParams()
         self.httpClassification = self.checkApiKey()
@@ -90,6 +93,47 @@ class ItsRequester:
     def __del__(self,):
         self.logger.debug('Killing ItsRequester...')
         del self.logger
+
+    def setSession(self, itsSessionInfo):
+        # Evtl. Durch Property ersetzen
+        self.sessionFinished = False
+        self.sessionInfo = itsSessionInfo
+
+    def classifyImgDir(self, imgDir):
+        if self.sessionInfo:
+            if self.debug:
+                self.logger.debug('Starting debug classification')
+            self.startWorkerThread(imgDir)
+        else:
+            self.logger.error('SessionInfo is not set. Use .setSession()')
+
+    def self.startWorkerThread(self, imgDir):
+        while not self.sessionFinished:
+                imgs = self.__collectImages(imgDir)
+                self.__sendGeneratedImages(imgs)
+                self.logger.info('Sleeping for 5s because session not finished.')
+                time.sleep(5)
+
+    def __sendGeneratedImages(self, imgs):
+        for img in imgs:
+            res = self.sendRequest(img)[0]
+            reqInfo = self.getRequestInfoForResult(res, img)
+            reqInfo.epoch = self.__getEpoch(img)
+            self.logger.infoRequestInfo(reqInfo)
+
+    def __getEpoch(self, img):
+        # Epoche aus dem String Filtern
+        return int(re.search(r'epoch_(\d*)', img).group(1))
+
+    def __collectImages(self, imgDir):
+        imgs = []
+        # Alle nicht klassifizierten Bilder sammeln
+        for root, _, files in os.walk(imgDir):
+            for f in files:
+                if not '_c' in f:
+                    imgs.append(os.path.join(root, f))
+
+        return imgs
 
     def checkApiKey(self):
         # Nicht default Value und nicht leer
@@ -104,7 +148,7 @@ class ItsRequester:
 
         return http
 
-    def checkFilesFolders(self):
+    def checkFilesAndFolders(self):
         self.logger.debug('Starting Folder check...')
         self.createDir(dirIn, dirTrash, dirDone, dirError, dirOut)
 
@@ -178,6 +222,8 @@ class ItsRequester:
                 myFiles = {'image': img}
                 time.sleep(1)
                 # while not send:
+                if self.debug:
+                    self.logger.debug('Sending request...'.format)
                 res = requests.post(myUrl, data=myData, files=myFiles)
                     # print(res.status_code)
                     # if res.status_code == requests.codes.too_many:
@@ -192,12 +238,7 @@ class ItsRequester:
                     # if res.ok:
                     #     send = True
                     #     firstWait = True
-                reqInfo = self.getRequestInfoForResult(res, img)
                 results.append(res)
-
-                if self.debug:
-                    self.logger.infoRequestInfo(reqInfo)
-
         return results
 
     def getRequestInfoForResult(self, result, img):
@@ -208,7 +249,11 @@ class ItsRequester:
             reqInfo.nn_class = nn_class
             reqInfo.max_confidence = max_confidence
             reqInfo.json_result = result.json()
-
+        if self.sessionInfo:
+            reqInfo.sessionNr = self.sessionInfo.sessionNr
+        else:
+            reqInfo.sessionNr = 0
+        reqInfo.epoch = 0
         reqInfo.img_array = np.fromfile(img, dtype=np.uint8)
         reqInfo.img_dtype = reqInfo.img_array.dtype.name
         return reqInfo
@@ -276,6 +321,10 @@ class ItsRequester:
                     img = open(imgPath, 'rb')
 
                     response = self.sendRequest(img)[0]
+
+                    reqInfo = self.getRequestInfoForResult(response, img)
+                    self.logger.infoRequestInfo(reqInfo)
+
                     img.close()
 
                     dest = ''
