@@ -15,7 +15,7 @@ class ItsLogger(logging.LoggerAdapter):
         self.handler = None
         if debug:
             # Beim Debugging alles im Terminal ausgeben
-            level = logging.INFO
+            level = logging.DEBUG
             self.handler = logging.StreamHandler()
         else:
             # Ohne Debugging INFO Level in Datei schreiben

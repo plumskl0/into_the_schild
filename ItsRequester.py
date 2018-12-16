@@ -87,6 +87,10 @@ class ItsRequester:
         self.url, self.key, self.delay, self.xmlHistory = self.getConfigParams()
         self.httpClassification = self.checkApiKey()
 
+    def __del__(self,):
+        self.logger.debug('Killing ItsRequester...')
+        del self.logger
+
     def checkApiKey(self):
         # Nicht default Value und nicht leer
         http = False

@@ -77,11 +77,11 @@ class ItsDcgan():
         self.sess = None
 
     def __del__(self):
-        self.log.debug('Killing ITSdcgan...')
+        self.log.debug('Killing Itsdcgan...')
         if self.sess:
             self.sess.close()
             del self.sess
-        self.log.debug('ITSdcgan killed.')
+        self.log.debug('Itsdcgan killed.')
         del self.log
 
     def initEpoch(
