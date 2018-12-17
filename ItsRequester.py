@@ -86,9 +86,12 @@ class ItsRequester:
         self.xmlHistory = True
         self.checkFilesAndFolders()
         self.sessionInfo = None
-
         self.url, self.key, self.delay, self.xmlHistory = self.getConfigParams()
         self.httpClassification = self.checkApiKey()
+
+        # Quick'n'Dirty hardcoded
+        # TODO: poll_delay evtl. in config aufnehmen
+        self.poll_delay = 5
 
     def __del__(self,):
         self.logger.debug('Killing ItsRequester...')
@@ -102,35 +105,67 @@ class ItsRequester:
     def classifyImgDir(self, imgDir):
         if self.sessionInfo:
             if self.debug:
-                self.logger.debug('Starting debug classification')
-            self.startWorkerThread(imgDir)
+                self.logger.debug('Starting classification')
+            self.__startWorkerThread(imgDir)
         else:
             self.logger.error('SessionInfo is not set. Use .setSession()')
 
-    def self.startWorkerThread(self, imgDir):
-        while not self.sessionFinished:
-                imgs = self.__collectImages(imgDir)
-                self.__sendGeneratedImages(imgs)
-                self.logger.info('Sleeping for 5s because session not finished.')
-                time.sleep(5)
+    def stopRequests(self,):
+        self.sessionFinished = True
+        while self.classificationThread.isAlive():
+            self.logger.info('Classification still running...')
+            self.classificationThread.join(self.poll_delay)
 
-    def __sendGeneratedImages(self, imgs):
-        for img in imgs:
-            res = self.sendRequest(img)[0]
-            reqInfo = self.getRequestInfoForResult(res, img)
-            reqInfo.epoch = self.__getEpoch(img)
+    def __startWorkerThread(self, imgDir):
+        self.logger.info('Preparing classification thread for folder {}'.format(
+            imgDir
+        ))
+        self.classificationThread = Thread(
+            target=self.__runClassification,
+            args=(imgDir,)
+        )
+        self.classificationThread.start()
+
+    def __runClassification(self, imgDir):
+        while not self.sessionFinished:
+            self.logger.info('Starting classification check on {}'
+                             .format(imgDir))
+            imgs = self.__collectImagePaths(imgDir)
+            self.__sendGeneratedImages(imgs)
+            self.logger.info('Classification waiting for {}'
+                             .format(self.poll_delay))
+            time.sleep(self.poll_delay)
+
+    def __sendGeneratedImages(self, imgsPath):
+        for p in imgsPath:
+            with open(p, 'rb') as img:
+                res = self.sendRequest(img)
+                reqInfo = self.getRequestInfoForResult(res, img)
+                
+            reqInfo.epoch = self.__getEpoch(p)
             self.logger.infoRequestInfo(reqInfo)
+            self.__markImgClassified(p)
+
+    def __markImgClassified(self, path):
+        self.logger.debug('Marking file {} as classifed.'.format(path))
+        newName = path.replace('.png', '_c.png')
+        try:
+            os.rename(path, newName)
+        except WindowsError:
+            os.remove(newName)
+            os.rename(path, newName)
+
 
     def __getEpoch(self, img):
-        # Epoche aus dem String Filtern
+        # Epoche aus dem Pfad Filtern
         return int(re.search(r'epoch_(\d*)', img).group(1))
 
-    def __collectImages(self, imgDir):
+    def __collectImagePaths(self, imgDir):
         imgs = []
         # Alle nicht klassifizierten Bilder sammeln
         for root, _, files in os.walk(imgDir):
             for f in files:
-                if not '_c' in f:
+                if not '_c.png' in f:
                     imgs.append(os.path.join(root, f))
 
         return imgs
@@ -208,9 +243,9 @@ class ItsRequester:
 
         return url, key, delay, xmlHistory
 
-    def sendRequest(self, *imgs):
-        self.logger.debug('Sending request for {} Images...'.format(len(imgs)))
-        results = []
+    def sendRequest(self, img):
+        self.logger.debug('Preparing request for Image...')
+        res = None
 
         if self.httpClassification:
             myUrl = self.url
@@ -218,28 +253,27 @@ class ItsRequester:
 
             send = False
             firstWait = True
-            for img in imgs:
-                myFiles = {'image': img}
-                time.sleep(1)
-                # while not send:
-                if self.debug:
-                    self.logger.debug('Sending request...'.format)
-                res = requests.post(myUrl, data=myData, files=myFiles)
-                    # print(res.status_code)
-                    # if res.status_code == requests.codes.too_many:
-                    #     if firstWait:
-                    #         self.logger.error('Too many requests waiting for {}s.'.format(self.delay))
-                    #         time.sleep(self.delay)
-                    #         firstWait = False
-                    #     else:
-                    #         rand = random.randint(1,10)
-                    #         self.logger.error('Too many requests waiting for {}s.'.format(rand))
-                    #         time.sleep(rand)
-                    # if res.ok:
-                    #     send = True
-                    #     firstWait = True
-                results.append(res)
-        return results
+            myFiles = {'image': img}
+            time.sleep(1)
+            # while not send:
+            if self.debug:
+                self.logger.debug('Sending request...')
+            res = requests.post(myUrl, data=myData, files=myFiles)
+            # print(res.status_code)
+            # if res.status_code == requests.codes.too_many:
+            #     if firstWait:
+            #         self.logger.error('Too many requests waiting for {}s.'.format(self.delay))
+            #         time.sleep(self.delay)
+            #         firstWait = False
+            #     else:
+            #         rand = random.randint(1,10)
+            #         self.logger.error('Too many requests waiting for {}s.'.format(rand))
+            #         time.sleep(rand)
+            # if res.ok:
+            #     send = True
+            #     firstWait = True
+
+        return res
 
     def getRequestInfoForResult(self, result, img):
         reqInfo = ItsRequestInfo()

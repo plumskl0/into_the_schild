@@ -70,19 +70,34 @@ class ItsSessionManager():
         genImgsDir = self.dcgan.prepareRunFolder()
 
         self.req = ItsRequester(sesInfo.debug)
-        self.req.setSession(sesInfo)
+        if self.req.httpClassification:
+            self.req.setSession(sesInfo)
+            # Startet einen Klassifikationsthread
+            self.req.classifyImgDir(genImgsDir)
+
+            # Dcgan arbeiten lassen
+            self.dcgan.start()
+
+            # Requester stoppen
+            self.req.stopRequests()
+            self.log.info('Session finished.')
 
 
     def createDebugSession(self):
         self.log.debug('Creating debug SessionInfo.')
         info = ItsSessionInfo()
 
-        info.sessionNr = 1
+        info.sessionNr = 0
         info.max_epoch = 10
         info.info_text = 'Debug Session with no SQL connection'
         info.enableImageGeneration = True
         info.cntGenerateImages = 10
         info.batch_size = 2
-        info.debug = True
+        info.debug = False
 
         return info
+
+# Debug main
+if __name__ == "__main__":
+    s = ItsSessionManager()
+    s.startDebugSession()
