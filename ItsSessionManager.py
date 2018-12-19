@@ -93,7 +93,7 @@ class ItsSessionManager():
         info.enableImageGeneration = True
         info.cntGenerateImages = 10
         info.batch_size = 2
-        info.debug = False
+        info.debug = True
 
         return info
 
