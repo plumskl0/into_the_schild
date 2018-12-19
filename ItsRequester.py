@@ -52,17 +52,6 @@ fileConfig = 'requester.ini'
 fileHistory = os.path.join(dirItsRequests, 'req_history.xml')
 fileLog = 'requester.log'
 
-# Default Config Werte
-PARAM_REQ = 'Requester'
-PARAM_URL = 'url'
-PARAM_KEY = 'key'
-PARAM_DEF_KEY_VAL = 'Api-Key einfuegen'
-PARAM_DELAY = 'delay'
-PARAM_XML = 'xml'
-# Alle 10 Sekunden auf neue Dateien prüfen
-PARAM_DEF_DELAY_VAL = 60
-PARAM_DEF_XML_VAL = False
-
 # XML Elemente und Attribute
 XML_ROOT = 'request_history'
 XML_REQUEST = 'request'
@@ -169,7 +158,7 @@ class ItsRequester:
                     imgs.append(os.path.join(root, f))
 
         return imgs
-
+# TODO: Methode entfernen
     def checkApiKey(self):
         # Nicht default Value und nicht leer
         http = False
@@ -186,12 +175,6 @@ class ItsRequester:
     def checkFilesAndFolders(self):
         self.logger.debug('Starting Folder check...')
         self.createDir(dirIn, dirTrash, dirDone, dirError, dirOut)
-
-        if not os.path.exists(fileConfig):
-            self.logger.debug('Creating File: {}'.format(fileConfig))
-            with open(fileConfig, 'w') as cfgFile:
-                config = self.createConfigTemplate()
-                config.write(cfgFile)
 
         if not os.path.exists(fileHistory) and self.xmlHistory:
             self.logger.debug('Creating File: {}'.format(fileHistory))
