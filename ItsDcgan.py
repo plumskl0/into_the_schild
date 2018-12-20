@@ -45,40 +45,13 @@ import imageio
 import logging
 import numpy as np
 import tensorflow as tf
-from itslogging import ItsLogger
+from itslogging import ItsLogger, ItsSqlLogger
 from itsmisc import ItsEpochInfo
 
 dirItsImages = './its_images'
 
 
 class ItsDcgan():
-
-    def __init__(self, *args, **kwargs):
-        if kwargs is not None:
-            if len(kwargs) == 2:
-                # sessionNr und debug erhalten
-                self.__init(kwargs['sessionNr'], kwargs['debug'])
-
-        if len(args) == 1:
-            # Session Objekt
-            self.__initSessionInfo(args[0])
-        elif len(args) == 2:
-            # Zwei Parameter
-            self.__init(args[0], args[1])
-        else:
-            # Zu faul um gerade über den Logger nachzudenken
-            print('Incorrect ItsDcgan() Parametes.')
-            print('Starting default init.')
-            self.__init()
-
-    def __initSessionInfo(self, itsSessionInfo):
-        self.__init(itsSessionInfo.sessionNr)
-        self.initEpoch(
-            epochs=itsSessionInfo.max_epoch,
-            batch_size=itsSessionInfo.batch_size,
-            enableImageGeneration=itsSessionInfo.enableImageGeneration,
-            cntGenerateImages=itsSessionInfo.cntGenerateImages
-        )
 
     def __init(self, sessionNr='0', debug=True):
         self.logName = 'its_dcgan'
@@ -106,6 +79,19 @@ class ItsDcgan():
             del self.sess
         self.log.debug('Itsdcgan killed.')
         del self.log
+
+    def initSessionInfo(self, itsSessionInfo, sqlLog=None):
+        if sqlLog:
+            self.sqlLog = sqlLog
+        self.__init(
+            itsSessionInfo.sessionNr
+        )
+        self.initEpoch(
+            epochs=itsSessionInfo.max_epoch,
+            batch_size=itsSessionInfo.batch_size,
+            enableImageGeneration=itsSessionInfo.enableImageGeneration,
+            cntGenerateImages=itsSessionInfo.cntGenerateImages
+        )
 
     def initEpoch(
         self, epochs=10, n_noise=64, batch_size=2,
@@ -475,6 +461,8 @@ class ItsDcgan():
                     )
 
                     self.log.debugEpochInfo(eLoss)
+                    if self.sqlLog:
+                        self.sqlLog.logEpochInfo(eLoss)
 
                     # Bilder generieren
                     if self.enableImageGeneration:

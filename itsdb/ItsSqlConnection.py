@@ -20,18 +20,18 @@ class ItsSqlConnection():
 
     def debugConnection(self, host, user, passw):
         self.__debug('Trying to connect to database...')
-        self.db = mysql.connect(
+        self.db_con = mysql.connect(
             host=host,
             user=user,
             passwd=passw
         )
         self.__debug('Connected to database.')
-        self.its_cur = self.db.cursor()
+        self.its_cur = self.db_con.cursor()
         self.dbExists = True
 
     def __createConnection(self):
         self.__debug('Trying to connect to database...')
-        self.db = mysql.connect(
+        self.db_con = mysql.connect(
             host=self.sql_cfg.host,
             user=self.sql_cfg.user,
             passwd=self.sql_cfg.passw
@@ -40,7 +40,7 @@ class ItsSqlConnection():
 
     def __checkDatabase(self):
         self.__debug('Checking if Database exists...')
-        c = self.db.cursor()
+        c = self.db_con.cursor()
         c.execute('SHOW DATABASES')
 
         # Prüfen ob die eingestellte DB vorhanden ist
@@ -80,7 +80,7 @@ class ItsSqlConnection():
                 self.__debug('Executing Statement:\n{}'.format(s))
                 s = self.__formatStatements(s)
                 self.its_cur.execute(s)
-                self.db.commit()
+                self.db_con.commit()
 
     def __formatStatements(self, stmt):
         # alles in eine Zeile bringen
@@ -95,6 +95,18 @@ class ItsSqlConnection():
             self.log.debug(msg)
         else:
             print(msg)
+
+    def insertSession(self, itsSessionInfo):
+        self.__debug('>>>>>> Session Not implemented')
+        pass
+
+    def insertEpoch(self, itsEpochInfo):
+        self.__debug('>>>>>> Epoch Not implemented')
+        pass
+
+    def insertRequest(self, itsRequestInfo):
+        self.__debug('>>>>>> Request Not implemented')
+        pass
 
 
 if __name__ == "__main__":

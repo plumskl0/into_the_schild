@@ -14,7 +14,7 @@ import os
 from ItsDcgan import ItsDcgan, dirItsImages
 from ItsRequester import ItsRequester, dirItsRequests
 from itsmisc import ItsSessionInfo, ItsConfig
-from itslogging import ItsLogger
+from itslogging import ItsLogger, ItsSqlLogger
 from itsdb import ItsSqlConnection
 class ItsSessionManager():
 
@@ -65,6 +65,40 @@ class ItsSessionManager():
         requester = ItsRequester(self.cfg.getRequesterConfig(), debug=True)
         requester.checkFilesAndFolders()
 
+    def startSqlDebugSession(self):
+        if self.cfg.isValid: 
+            self.log.info('Starting sql debug session...')
+
+            sesInfo = self.createDebugSession()
+            self.sql_con.insertSession(sesInfo)
+            self.sqlLog = ItsSqlLogger(self.sql_con)
+
+            self.dcgan = ItsDcgan()
+            self.dcgan.initSessionInfo(sesInfo, self.sqlLog)
+            self.dcgan.initDcgan()
+            genImgsDir = self.dcgan.prepareRunFolder()
+
+            self.req = ItsRequester(
+                self.cfg.getRequesterConfig(),
+                sesInfo.debug
+            )
+            self.req.setSession(sesInfo, self.sqlLog)
+            
+            if self.req.isReady:
+                self.req.setSession(sesInfo)
+                # Startet einen Klassifikationsthread
+                self.req.classifyImgDir(genImgsDir)
+
+                # Dcgan arbeiten lassen
+                self.dcgan.start()
+
+                # Requester stoppen
+                self.req.stopRequests()
+                self.log.info('Session finished.')
+
+        else:
+            self.log.error('SQL Config invalid. Check ist.ini')
+
     def startDebugSession(self):
         if self.cfg.isDebugValid():
             self.log.info('Starting debug session...')
@@ -85,7 +119,8 @@ class ItsSessionManager():
 
             sesInfo = self.createDebugSession()
 
-            self.dcgan = ItsDcgan(sesInfo)
+            self.dcgan = ItsDcgan()
+            self.dcgan.initSessionInfo(sesInfo)
             self.dcgan.initDcgan()
             genImgsDir = self.dcgan.prepareRunFolder()
 
@@ -123,4 +158,3 @@ class ItsSessionManager():
 # Debug main
 if __name__ == "__main__":
     s = ItsSessionManager()
-    # s.startDebugSession()

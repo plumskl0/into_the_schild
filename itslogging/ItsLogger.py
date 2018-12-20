@@ -33,6 +33,27 @@ class ItsLogger(logging.LoggerAdapter):
         self.lgr.removeHandler(self.handler)
         self.handler.close()
 
+    def debugSessionInfo(self, itsSessionInfo):
+        self.debug('Creating Session Info...')
+
+        msg = 'Session {} Settings:\n'
+        msg += '\tInfo: \t{}\n'
+        msg += '\tGen. images: \t{}\n'
+        msg += '\tBatch size: \t{}\n'
+        msg += '\tDebug: \t{}\n'
+
+        msg.format(
+            itsSessionInfo.sessionNr,
+            itsSessionInfo.max_epoch,
+            itsSessionInfo.info_text,
+            itsSessionInfo.enableImageGeneration,
+            itsSessionInfo.cntGenerateImages,
+            itsSessionInfo.batch_siz,
+            itsSessionInfo.debug
+        )
+
+        self.debug(msg)
+
     def infoRequestInfo(self, itsRequestInfo):
 
         self.lgr.info('Classification:')

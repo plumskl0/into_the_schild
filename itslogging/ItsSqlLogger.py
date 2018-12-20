@@ -1,38 +1,21 @@
 # -*- coding: utf-8 -*-
-'''
-    SQL Logger Prototyp
-
-    Tabellen in SQL-DB:
-    - session:
-        - ID:int
-        - max_epochs:int
-        - Info_Text:String
-        - cntBaseImgs:int
-        - enableImageGeneration:boolean
-        - cntGenerateImages:int
-    - epoch_history:
-        - id_session:int
-        - epoch:int
-        - d_ls:float
-        - g_ls:float
-        - d_real_ls:float
-        - d_fake_ls:floast
-    - request_history:
-        - id_session:int
-        - epoch:int
-        - json_result:string
-        - max_confidence:float
-        - img_array:string
-        - img_dtype:string
-'''
 
 from itslogging.ItsLogger import ItsLogger
 
 
 class ItsSqlLogger(ItsLogger):
 
+    def __init__(self, db_con):
+        super().__init__(logName='its_sql')
+
+        self.db_con = db_con
+
     def logSessionInfo(self, itsSessionInfo):
-        pass
+
+        if itsSessionInfo.debug:
+            self.debugSessionInfo(itsSessionInfo)
+
+        self.db_con.insertSession(itsSessionInfo)
 
     def logEpochInfo(self, itsEpochInfo):
         self.debug('Logging EpochInfo...')
@@ -42,6 +25,8 @@ class ItsSqlLogger(ItsLogger):
         if self.debug:
             self.debugEpochInfo(itsEpochInfo)
 
+        self.db_con.insertEpoch(itsEpochInfo)
+
     def logRequestInfo(self, itsRequestInfo):
         self.debug('Logging RequestInfo...')
 
@@ -49,7 +34,9 @@ class ItsSqlLogger(ItsLogger):
 
         # Debugmodus Output:
         if self.debug:
-            self.debugRequestInfo(itsRequestInfo)
+            self.infoRequestInfo(itsRequestInfo)
+        
+        self.db_con.insertRequest(itsRequestInfo)
 
 
 if __name__ == '__main__':

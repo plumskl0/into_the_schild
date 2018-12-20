@@ -36,7 +36,7 @@ import configparser as cfgp
 from lxml import etree
 from datetime import datetime
 from threading import Thread
-from itslogging import ItsLogger
+from itslogging import ItsLogger, ItsSqlLogger
 from itsmisc import ItsRequestInfo, ItsConfig
 
 # Ordner
@@ -68,8 +68,8 @@ class ItsRequester:
     def __init__(self, config, debug=False):
         self.logger = ItsLogger(
             logName='its_requester',
-            debug=debug)
-
+            debug=debug
+        )
         self.config = config
         self.debug = debug
         # Um beim ersten Start eine Beispiel XML zu erzeugen
@@ -93,10 +93,12 @@ class ItsRequester:
         self.delay = self.config.delay
         self.xmlHistory = self.config.xml
 
-    def setSession(self, itsSessionInfo):
+    def setSession(self, itsSessionInfo, sqlLog=None):
         # Evtl. Durch Property ersetzen
         self.sessionFinished = False
         self.sessionInfo = itsSessionInfo
+        if sqlLog:
+            self.sqlLog = sqlLog
 
     def classifyImgDir(self, imgDir):
         if self.sessionInfo:
@@ -140,6 +142,8 @@ class ItsRequester:
 
             reqInfo.epoch = self.__getEpoch(p)
             self.logger.infoRequestInfo(reqInfo)
+            if self.sqlLog:
+                self.sqlLog.logRequestInfo(reqInfo)
             self.__markImgClassified(p)
 
     def __markImgClassified(self, path):
@@ -297,6 +301,8 @@ class ItsRequester:
 
                     reqInfo = self.getRequestInfoForResult(response, img)
                     self.logger.infoRequestInfo(reqInfo)
+                    if self.sql:
+                        self.logger.logRequestInfo(reqInfo)
 
                     img.close()
 

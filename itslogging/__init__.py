@@ -1,1 +1,2 @@
 from itslogging.ItsLogger import ItsLogger
+from itslogging.ItsSqlLogger import ItsSqlLogger
