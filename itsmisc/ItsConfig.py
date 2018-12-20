@@ -13,10 +13,12 @@ class ItsConfig():
     PARAM_HOST = 'host'
     PARAM_USER = 'user'
     PARAM_PASS = 'pass'
+    PARAM_DATABASE = 'database'
 
     DEF_HOST = 'hostip'
     DEF_USER = 'user'
     DEF_PASS = 'pass'
+    DEF_DATABASE = 'its'
 
     # Requester config defaults
     PARAM_REQ = 'Requester'
@@ -58,7 +60,8 @@ class ItsConfig():
         self.cfg[ItsConfig.PARAM_MYSQL] = {
             ItsConfig.PARAM_HOST: ItsConfig.DEF_HOST,
             ItsConfig.PARAM_USER: ItsConfig.DEF_USER,
-            ItsConfig.PARAM_PASS: ItsConfig.DEF_PASS
+            ItsConfig.PARAM_PASS: ItsConfig.DEF_PASS,
+            ItsConfig.PARAM_DATABASE: ItsConfig.DEF_DATABASE
         }
 
         # Requester Part
@@ -87,6 +90,7 @@ class ItsConfig():
         host = None
         user = None
         passw = None
+        db = None
 
         if self.cfg.has_option(ItsConfig.PARAM_MYSQL, ItsConfig.PARAM_HOST):
             host = self.cfg.get(ItsConfig.PARAM_MYSQL, ItsConfig.PARAM_HOST)
@@ -97,7 +101,10 @@ class ItsConfig():
         if self.cfg.has_option(ItsConfig.PARAM_MYSQL, ItsConfig.PARAM_PASS):
             passw = self.cfg.get(ItsConfig.PARAM_MYSQL, ItsConfig.PARAM_PASS)
 
-        self.sql_cfg = ItsSqlCfg(host, user, passw)
+        if self.cfg.has_option(ItsConfig.PARAM_MYSQL, ItsConfig.PARAM_DATABASE):
+            db = self.cfg.get(ItsConfig.PARAM_MYSQL, ItsConfig.PARAM_DATABASE)
+
+        self.sql_cfg = ItsSqlCfg(host, user, passw, db)
 
     def __getRequesterConfig(self):
         # Requester part

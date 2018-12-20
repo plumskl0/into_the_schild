@@ -15,7 +15,7 @@ from ItsDcgan import ItsDcgan, dirItsImages
 from ItsRequester import ItsRequester, dirItsRequests
 from itsmisc import ItsSessionInfo, ItsConfig
 from itslogging import ItsLogger
-
+from itsdb import ItsSqlConnection
 class ItsSessionManager():
 
     CONFIG_PATH = 'its.ini'
@@ -27,6 +27,17 @@ class ItsSessionManager():
         # Initialisierung:
         # Dcgan und Requester aufrufen um Ordnerstruktur anzulegen
         self.checkFirstRun()
+        self.sql_con = self.__createConnection()
+
+    def __createConnection(self):
+        self.log.info('Creating SQL connection...')
+        sql = ItsSqlConnection(self.cfg.sql_cfg, log=self.log)
+        if sql.dbExists:
+            self.log.info('Connection successful.')
+            return sql
+        else:
+            self.log.info('No SQL connection. Using debug output.')
+            return None
 
     def checkFirstRun(self):
         self.log.debug('Starting first launch check...')
@@ -112,4 +123,4 @@ class ItsSessionManager():
 # Debug main
 if __name__ == "__main__":
     s = ItsSessionManager()
-    s.startDebugSession()
+    # s.startDebugSession()

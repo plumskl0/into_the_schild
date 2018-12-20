@@ -30,7 +30,6 @@ CREATE TABLE its_epoch_history (
     PRIMARY KEY (id, session_id , epoch_nr)
 );
 
-
 CREATE TABLE its_request_history (
     id INT NOT NULL AUTO_INCREMENT,
     session_id INT NOT NULL,
