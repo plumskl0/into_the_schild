@@ -15,7 +15,7 @@ its_images/
 
 # Files
 settings.json
-its_dcgan.ini
+its.ini
 *.tar
 *.png
 

@@ -37,7 +37,7 @@ from lxml import etree
 from datetime import datetime
 from threading import Thread
 from itslogging import ItsLogger
-from itsmisc import ItsRequestInfo
+from itsmisc import ItsRequestInfo, ItsConfig
 
 # Ordner
 dirItsRequests = './its_request'
@@ -65,26 +65,33 @@ XML_ATR_DATE_FORMAT = '%d-%m-%Y %H:%M:%S'
 
 class ItsRequester:
 
-    def __init__(self, debug=False):
+    def __init__(self, config, debug=False):
         self.logger = ItsLogger(
             logName='its_requester',
             debug=debug)
 
+        self.config = config
         self.debug = debug
         # Um beim ersten Start eine Beispiel XML zu erzeugen
         self.xmlHistory = True
         self.checkFilesAndFolders()
+        self.__initConfig()
         self.sessionInfo = None
-        self.url, self.key, self.delay, self.xmlHistory = self.getConfigParams()
-        self.httpClassification = self.checkApiKey()
 
         # Quick'n'Dirty hardcoded
         # TODO: poll_delay evtl. in config aufnehmen
         self.poll_delay = 5
+        self.isReady = True
 
     def __del__(self,):
         self.logger.debug('Killing ItsRequester...')
         del self.logger
+
+    def __initConfig(self):
+        self.url = self.config.url
+        self.key = self.config.key
+        self.delay = self.config.delay
+        self.xmlHistory = self.config.xml
 
     def setSession(self, itsSessionInfo):
         # Evtl. Durch Property ersetzen
@@ -130,7 +137,7 @@ class ItsRequester:
             with open(p, 'rb') as img:
                 res = self.sendRequest(img)
                 reqInfo = self.getRequestInfoForResult(res, img)
-                
+
             reqInfo.epoch = self.__getEpoch(p)
             self.logger.infoRequestInfo(reqInfo)
             self.__markImgClassified(p)
@@ -143,7 +150,6 @@ class ItsRequester:
         except WindowsError:
             os.remove(newName)
             os.rename(path, newName)
-
 
     def __getEpoch(self, img):
         # Epoche aus dem Pfad Filtern
@@ -158,19 +164,6 @@ class ItsRequester:
                     imgs.append(os.path.join(root, f))
 
         return imgs
-# TODO: Methode entfernen
-    def checkApiKey(self):
-        # Nicht default Value und nicht leer
-        http = False
-        if not PARAM_DEF_KEY_VAL == self.key or not self.key:
-            self.logger.info('API-Key found. Enabling HTTP Requests.')
-            http = True
-        else:
-            self.logger.error('No API-Key defined in requester.ini')
-            self.logger.info(
-                'No HTTP Requests possible. Please specify API-Key.')
-
-        return http
 
     def checkFilesAndFolders(self):
         self.logger.debug('Starting Folder check...')
@@ -189,50 +182,13 @@ class ItsRequester:
                 self.logger.debug('Creating Dir: {}'.format(d))
                 os.makedirs(d)
 
-    def createConfigTemplate(self):
-        self.logger.debug('Creating Config File: {}'.format(PARAM_REQ))
-        config = cfgp.ConfigParser()
-        config[PARAM_REQ] = {PARAM_URL: 'http://www.example.com',
-                             PARAM_KEY: PARAM_DEF_KEY_VAL,
-                             PARAM_DELAY: PARAM_DEF_DELAY_VAL,
-                             PARAM_XML: PARAM_DEF_XML_VAL}
-        return config
-
-    def getConfig(self):
-        config = cfgp.ConfigParser()
-        with open(fileConfig, 'r') as cfgFile:
-            config.read_file(cfgFile)
-            return config
-
-    def getConfigParams(self):
-        config = self.getConfig()
-
-        url = None
-        key = None
-        delay = None
-        xmlHistory = None
-
-        if config.has_option(PARAM_REQ, PARAM_URL):
-            url = config.get(PARAM_REQ, PARAM_URL)
-
-        if config.has_option(PARAM_REQ, PARAM_KEY):
-            key = config.get(PARAM_REQ, PARAM_KEY)
-
-        if config.has_option(PARAM_REQ, PARAM_DELAY):
-            delay = config.getint(PARAM_REQ, PARAM_DELAY)
-
-        if config.has_option(PARAM_REQ, PARAM_XML):
-            xmlHistory = config.getboolean(PARAM_REQ, PARAM_XML)
-
-        return url, key, delay, xmlHistory
-
     def sendRequest(self, img):
         self.logger.debug('Preparing request for Image...')
         res = None
 
-        if self.httpClassification:
+        if self.isReady:
             myUrl = self.url
-            myData = {PARAM_KEY: self.key}
+            myData = {ItsConfig.PARAM_KEY: self.key}
 
             send = False
             firstWait = True
@@ -323,7 +279,7 @@ class ItsRequester:
         return root
 
     def sendDir(self):
-        if self.httpClassification:
+        if self.isReady:
             _, _, files = next(os.walk(dirIn))
 
             self.logger.info('Files to process {}'.format(len(files)))
@@ -337,7 +293,7 @@ class ItsRequester:
                     self.logger.debug('Opening file {}'.format(imgPath))
                     img = open(imgPath, 'rb')
 
-                    response = self.sendRequest(img)[0]
+                    response = self.sendRequest(img)
 
                     reqInfo = self.getRequestInfoForResult(response, img)
                     self.logger.infoRequestInfo(reqInfo)
@@ -383,4 +339,5 @@ class ItsRequester:
 
 if __name__ == '__main__':
     print("Starting Debugmode Requester...")
-    r = ItsRequester(debug=True)
+    test = ItsConfig('its.ini')
+    r = ItsRequester(test.getRequesterConfig(), debug=True)
