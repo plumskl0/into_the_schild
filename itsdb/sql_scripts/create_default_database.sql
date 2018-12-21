@@ -55,11 +55,11 @@ INSERT INTO its.its_session(
 )
 VALUES (
     0,
-    -1,
+    0,
     'Epoche 0 ist eine Debug Epoche. Hier werden alle Testläufe gesammelt.',
-    -1,
+    0,
     FALSE,
-    -1
+    0
 );
 
 INSERT INTO its.its_epoch_history (
@@ -73,11 +73,11 @@ INSERT INTO its.its_epoch_history (
 )
 VALUES (
     0,
-    -1,
-    -1,
-    -1,
-    -1,
-    -1,
+    0,
+    0,
+    0,
+    0,
+    0,
     1
 );
 
@@ -93,9 +93,9 @@ INSERT INTO its.its_request_history (
 )
 VALUES (
     0,
-    -1,
+    0,
     'dummy',
-    -1,
+    0,
     '-1',
     '-1',
     '-1',

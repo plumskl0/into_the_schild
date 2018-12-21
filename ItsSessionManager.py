@@ -33,7 +33,7 @@ class ItsSessionManager():
         self.log.info('Creating SQL connection...')
         sql = ItsSqlConnection(self.cfg.sql_cfg, log=self.log)
         if sql.dbExists:
-            self.log.info('Connection successful.')
+            self.log.info('SQL Connection successful.')
             return sql
         else:
             self.log.info('No SQL connection. Using debug output.')
@@ -70,6 +70,7 @@ class ItsSessionManager():
             self.log.info('Starting sql debug session...')
 
             sesInfo = self.createDebugSession()
+
             self.sql_con.insertSession(sesInfo)
             self.sqlLog = ItsSqlLogger(self.sql_con)
 
@@ -147,6 +148,7 @@ class ItsSessionManager():
         info.sessionNr = 0
         info.max_epoch = 10
         info.info_text = 'Debug Session with no SQL connection'
+        info.cntBaseImages = -1
         info.enableImageGeneration = True
         info.cntGenerateImages = 10
         info.batch_size = 2
@@ -158,3 +160,4 @@ class ItsSessionManager():
 # Debug main
 if __name__ == "__main__":
     s = ItsSessionManager()
+    s.startSqlDebugSession()

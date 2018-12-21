@@ -77,6 +77,7 @@ class ItsRequester:
         self.checkFilesAndFolders()
         self.__initConfig()
         self.sessionInfo = None
+        self.sqlLog = None
 
         # Quick'n'Dirty hardcoded
         # TODO: poll_delay evtl. in config aufnehmen
@@ -141,7 +142,7 @@ class ItsRequester:
                 reqInfo = self.getRequestInfoForResult(res, img)
 
             reqInfo.epoch = self.__getEpoch(p)
-            self.logger.infoRequestInfo(reqInfo)
+            self.logger.infoRequestInfo(reqInfo, p)
             if self.sqlLog:
                 self.sqlLog.logRequestInfo(reqInfo)
             self.__markImgClassified(p)
@@ -301,8 +302,8 @@ class ItsRequester:
 
                     reqInfo = self.getRequestInfoForResult(response, img)
                     self.logger.infoRequestInfo(reqInfo)
-                    if self.sql:
-                        self.logger.logRequestInfo(reqInfo)
+                    if self.sqlLog:
+                        self.sqlLog.logRequestInfo(reqInfo)
 
                     img.close()
 

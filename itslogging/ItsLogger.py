@@ -54,9 +54,9 @@ class ItsLogger(logging.LoggerAdapter):
 
         self.debug(msg)
 
-    def infoRequestInfo(self, itsRequestInfo):
+    def infoRequestInfo(self, itsRequestInfo, name=None):
 
-        self.lgr.info('Classification:')
+        self.lgr.info('Classification for {}:'.format(name))
         self.lgr.info('{}\t{:2.2f}%'.format(
             itsRequestInfo.nn_class,
             itsRequestInfo.max_confidence*100

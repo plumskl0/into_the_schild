@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from itsmisc import ItsSessionInfo
 '''
     Ein DCGAN auf Basis von Code by Parag Mital (github.com/pkmital/CADL).
 
@@ -53,7 +54,7 @@ dirItsImages = './its_images'
 
 class ItsDcgan():
 
-    def __init(self, sessionNr='0', debug=True):
+    def __init__(self, sessionNr='0', debug=True):
         self.logName = 'its_dcgan'
         self.log = ItsLogger(logName=self.logName, debug=debug)
         self.cnt_runs = 0
@@ -71,6 +72,7 @@ class ItsDcgan():
         self.dirBaseImgs = os.path.join(self.dirItsImages, 'base_images')
 
         self.sess = None
+        self.sqlLog = None
 
     def __del__(self):
         self.log.debug('Killing Itsdcgan...')
@@ -81,11 +83,13 @@ class ItsDcgan():
         del self.log
 
     def initSessionInfo(self, itsSessionInfo, sqlLog=None):
-        if sqlLog:
-            self.sqlLog = sqlLog
-        self.__init(
+        self.__init__(
             itsSessionInfo.sessionNr
         )
+
+        if sqlLog:
+            self.sqlLog = sqlLog
+
         self.initEpoch(
             epochs=itsSessionInfo.max_epoch,
             batch_size=itsSessionInfo.batch_size,
@@ -144,14 +148,15 @@ class ItsDcgan():
     def getEpochInfo(
         self, epoch=-1, d_ls=-1,
         g_ls=-1, d_real_ls=-1,
-        d_fake_ls=-1
+        d_fake_ls=-1, entry_id=1
     ):
         self.log.info('Generating EpochInfo...')
         return ItsEpochInfo(
             self.sessionNr, epoch,
             self.batch_size,
             d_ls, g_ls,
-            d_real_ls, d_fake_ls
+            d_real_ls, d_fake_ls,
+            entry_id
         )
 
     def initDcgan(self):
@@ -371,7 +376,6 @@ class ItsDcgan():
         dirEpoch = os.path.join(self.dirRunImages, 'epoch_{}'.format(epoch))
 
         self.createDir(dirEpoch)
-
         self.log.info('Generating {} images in folder {}'.format(
             len(imgs), dirEpoch))
         # Konvertierung der Bilder
@@ -461,7 +465,10 @@ class ItsDcgan():
                     )
 
                     self.log.debugEpochInfo(eLoss)
+
+                    print('1 >>>>>>>>>>>>>>>>>>>>>>>>> {}'.format(self.sqlLog))
                     if self.sqlLog:
+                        print('2 >>>>>>>>>>>>>>>>>>>>>>>>>')
                         self.sqlLog.logEpochInfo(eLoss)
 
                     # Bilder generieren
@@ -484,8 +491,8 @@ class ItsDcgan():
 
             self.log.error('Start error: DCGAN not initialized')
 
+
 # Fürs Debugging und Testen
-from itsmisc import ItsSessionInfo
 if __name__ == "__main__":
     print('Debugingmode ItsDcgan.')
 

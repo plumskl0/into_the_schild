@@ -20,8 +20,6 @@ class ItsSqlLogger(ItsLogger):
     def logEpochInfo(self, itsEpochInfo):
         self.debug('Logging EpochInfo...')
 
-        # Hier kommt der SQL-Teil rein
-        # Debugmodus Output:
         if self.debug:
             self.debugEpochInfo(itsEpochInfo)
 
@@ -30,9 +28,6 @@ class ItsSqlLogger(ItsLogger):
     def logRequestInfo(self, itsRequestInfo):
         self.debug('Logging RequestInfo...')
 
-        # Hier kommt der SQL-Teil rein
-
-        # Debugmodus Output:
         if self.debug:
             self.infoRequestInfo(itsRequestInfo)
         

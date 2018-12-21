@@ -18,6 +18,7 @@ class ItsSessionInfo():
         sessionNr = -1,
         max_epoch = -1,
         info_text = -1,
+        cntBaseImages = -1,
         enableImageGeneration = -1,
         cntGenerateImages = -1,
         batch_size = -1,
@@ -26,6 +27,7 @@ class ItsSessionInfo():
         self.sessionNr = sessionNr
         self.max_epoch = max_epoch
         self.info_text = info_text
+        self.cntBaseImages = cntBaseImages
         self.enableImageGeneration = enableImageGeneration
         self.cntGenerateImages = cntGenerateImages
         self.batch_size = batch_size

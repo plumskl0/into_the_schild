@@ -8,13 +8,14 @@ req_in/
 
 # Files
 settings.json
+launch.json
 requester.ini
 req_history.xml
 requester.log
 its_images/
 
 # Files
-settings.json
+
 its.ini
 *.tar
 *.png
