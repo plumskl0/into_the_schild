@@ -16,6 +16,8 @@ from ItsRequester import ItsRequester, dirItsRequests
 from itsmisc import ItsSessionInfo, ItsConfig
 from itslogging import ItsLogger, ItsSqlLogger
 from itsdb import ItsSqlConnection
+
+
 class ItsSessionManager():
 
     CONFIG_PATH = 'its.ini'
@@ -23,6 +25,7 @@ class ItsSessionManager():
     def __init__(self):
         self.log = ItsLogger('its_session_manager')
         self.cfg = ItsConfig(ItsSessionManager.CONFIG_PATH)
+        self.firstRun = False
         self.ses_info = self.createDebugSession()
         # Initialisierung:
         # Dcgan und Requester aufrufen um Ordnerstruktur anzulegen
@@ -32,7 +35,11 @@ class ItsSessionManager():
     def __createConnection(self):
         self.log.info('Creating SQL connection...')
         sql = ItsSqlConnection(self.cfg.sql_cfg, log=self.log)
-        if sql.dbExists:
+        if sql.createdDefaultDb:
+            self.log.error(
+                'Created default database. Aborting run for debug purpose.')
+            return sql
+        elif sql.dbExists:
             self.log.info('SQL Connection successful.')
             return sql
         else:
@@ -50,6 +57,7 @@ class ItsSessionManager():
         existsReq = os.path.exists(dirItsRequests)
 
         if not existsDcgan or not existsReq:
+            self.firstRun = True
             self.log.info('First launch detected: Starting folder check...')
             self.initDcgan()
             self.log.info('DCGAN ready')
@@ -65,8 +73,11 @@ class ItsSessionManager():
         requester = ItsRequester(self.cfg.getRequesterConfig(), debug=True)
         requester.checkFilesAndFolders()
 
+    def checkIfSqlSessionIsReady(self):
+        return (self.cfg.isValid() and not self.firstRun and self.sql_con)
+
     def startSqlDebugSession(self):
-        if self.cfg.isValid: 
+        if self.checkIfSqlSessionIsReady():
             self.log.info('Starting sql debug session...')
 
             sesInfo = self.createDebugSession()
@@ -84,7 +95,7 @@ class ItsSessionManager():
                 sesInfo.debug
             )
             self.req.setSession(sesInfo, self.sqlLog)
-            
+
             if self.req.isReady:
                 self.req.setSession(sesInfo)
                 # Startet einen Klassifikationsthread
@@ -98,10 +109,13 @@ class ItsSessionManager():
                 self.log.info('Session finished.')
 
         else:
-            self.log.error('SQL Config invalid. Check ist.ini')
+            if not self.cfg.isValid():
+                self.log.error('SQL Config invalid. Check ist.ini')
+            else:
+                self.log.error('Run not ready. Check the logs.')
 
     def startDebugSession(self):
-        if self.cfg.isDebugValid():
+        if self.cfg.isDebugValid() and not self.firstRun:
             self.log.info('Starting debug session...')
             # Grundsätzlicher Aufbau:
             # 1. Session Objekt erzeugen
@@ -139,7 +153,12 @@ class ItsSessionManager():
                 self.req.stopRequests()
                 self.log.info('Session finished.')
         else:
-            self.log.error('Invalid config. Cannot start DebugSession.')
+            if not self.cfg.isDebugValid():
+                self.log.error('Invalid config. Cannot start DebugSession.')
+            elif self.firstRun:
+                self.log.error('Detected first run. Aborting for debug.')
+            else:
+                self.log.error('Run not ready. Check the logs.')
 
     def createDebugSession(self):
         self.log.debug('Creating debug SessionInfo.')

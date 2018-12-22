@@ -12,11 +12,18 @@ class ItsSqlConnection():
         self.sql_cfg = slq_cfg
         self.log = log
         self.dbExists = False
+        self.createdDefaultDb = False
+        self.db_con = None
         try:
             self.__createConnection()
             self.__checkDatabase()
         except:
             pass
+
+    def __del__(self):
+        if self.db_con:
+            self.db_con.rollback()
+            self.db_con.close()
 
     def debugConnection(self, host, user, passw):
         self.__debug('Trying to connect to database...')
@@ -39,7 +46,7 @@ class ItsSqlConnection():
         self.__debug('Connected to database.')
 
     def __checkDatabase(self):
-        self.__debug('>>>>>>>>>>>>>>>>>>><Checking if Database exists...')
+        self.__debug('Checking if Database exists...')
         c = self.db_con.cursor()
         c.execute('SHOW DATABASES')
 
@@ -62,7 +69,7 @@ class ItsSqlConnection():
         self.__debug('Database does not exist. Creating default...')
         self.executeFile(ItsSqlConnection.DEFAULT_DATABASE_FILE)
         self.its_cur.execute('USE its')
-        self.dbExists = True
+        self.createdDefaultDb = True
 
     def executeFile(self, filePath):
         self.__debug('Executing {}'.format(filePath))
@@ -166,7 +173,7 @@ class ItsSqlConnection():
 
     def insertEpoch(self, itsEpochInfo):
         self.__debug('Preparing EpochInfo for insert...')
-
+        entry_id = self.getEntryIdForSession()
         stmt = 'INSERT INTO its_epoch_history ('
         stmt += 'session_id, epoch_nr,'
         stmt += 'disc_loss, gen_loss,'
@@ -178,7 +185,7 @@ class ItsSqlConnection():
             itsEpochInfo.g_ls,
             itsEpochInfo.d_real_ls,
             itsEpochInfo.d_fake_ls,
-            itsEpochInfo.entry_id
+            entry_id
         )
         print('>>>>>>>>>>>>>>>>>>>>>>>>> ' + stmt)
         self.__debug('Executing statement:\n{}'.format(stmt))

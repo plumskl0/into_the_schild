@@ -148,15 +148,14 @@ class ItsDcgan():
     def getEpochInfo(
         self, epoch=-1, d_ls=-1,
         g_ls=-1, d_real_ls=-1,
-        d_fake_ls=-1, entry_id=1
+        d_fake_ls=-1
     ):
         self.log.info('Generating EpochInfo...')
         return ItsEpochInfo(
             self.sessionNr, epoch,
             self.batch_size,
             d_ls, g_ls,
-            d_real_ls, d_fake_ls,
-            entry_id
+            d_real_ls, d_fake_ls
         )
 
     def initDcgan(self):
