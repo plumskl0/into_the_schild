@@ -94,12 +94,13 @@ class ItsDcgan():
             epochs=itsSessionInfo.max_epoch,
             batch_size=itsSessionInfo.batch_size,
             enableImageGeneration=itsSessionInfo.enableImageGeneration,
+            stepsHistory=itsSessionInfo.stepsHistory,
             cntGenerateImages=itsSessionInfo.cntGenerateImages
         )
 
     def initEpoch(
         self, epochs=10, n_noise=64, batch_size=2,
-        stepsHistory=1000, enableImageGeneration=False,
+        enableImageGeneration=False, stepsHistory=1000,
         cntGenerateImages=200
     ):
         self.log.info('Initializing epoch...')
@@ -465,9 +466,7 @@ class ItsDcgan():
 
                     self.log.debugEpochInfo(eLoss)
 
-                    print('1 >>>>>>>>>>>>>>>>>>>>>>>>> {}'.format(self.sqlLog))
                     if self.sqlLog:
-                        print('2 >>>>>>>>>>>>>>>>>>>>>>>>>')
                         self.sqlLog.logEpochInfo(eLoss)
 
                     # Bilder generieren

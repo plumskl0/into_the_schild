@@ -125,8 +125,24 @@ class ItsRequester:
         )
         self.classificationThread.start()
 
+    def __isSessionFinished(self, imgDir):
+        self.logger.debug('Checking if Session is really finshed.')
+        b = self.sessionFinished and self.__classificationFinished(imgDir)
+        self.logger.info('Session really finished = {}'.format(b))
+        return b
+
+    def __classificationFinished(self, imgDir):
+        # Prüfen ob es noch Dateien gibt,
+        # die klassifiziert werden müssen.
+        m = re.compile(r'\d\.png')
+        for _, _, files in os.walk(imgDir):
+            if any(m.match(f) for f in files):
+                return False
+        
+        return True
+
     def __runClassification(self, imgDir):
-        while not self.sessionFinished:
+        while not self.__isSessionFinished(imgDir):
             self.logger.info('Starting classification check on {}'
                              .format(imgDir))
             imgs = self.__collectImagePaths(imgDir)

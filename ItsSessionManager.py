@@ -36,6 +36,7 @@ class ItsSessionManager():
         self.log.info('Creating SQL connection...')
         sql = ItsSqlConnection(self.cfg.sql_cfg, log=self.log)
         if sql.createdDefaultDb:
+            self.firstRun = True
             self.log.error(
                 'Created default database. Aborting run for debug purpose.')
             return sql
@@ -165,11 +166,12 @@ class ItsSessionManager():
         info = ItsSessionInfo()
 
         info.sessionNr = 0
-        info.max_epoch = 60001
+        info.max_epoch = 10
         info.info_text = 'Debug Session with no SQL connection'
         info.cntBaseImages = -1
         info.enableImageGeneration = True
-        info.cntGenerateImages = 120
+        info.stepsHistory = 3
+        info.cntGenerateImages = 10
         info.batch_size = 2
         info.debug = True
 

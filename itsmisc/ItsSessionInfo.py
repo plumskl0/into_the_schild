@@ -20,6 +20,7 @@ class ItsSessionInfo():
         info_text = -1,
         cntBaseImages = -1,
         enableImageGeneration = -1,
+        stepsHistory = -1,
         cntGenerateImages = -1,
         batch_size = -1,
         debug=True
@@ -29,6 +30,7 @@ class ItsSessionInfo():
         self.info_text = info_text
         self.cntBaseImages = cntBaseImages
         self.enableImageGeneration = enableImageGeneration
+        self.stepsHistory = stepsHistory
         self.cntGenerateImages = cntGenerateImages
         self.batch_size = batch_size
         self.debug = debug

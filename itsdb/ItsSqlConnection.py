@@ -111,7 +111,7 @@ class ItsSqlConnection():
 
     def __getHistoryIdForRequest(self, itsRequestInfo):
         curId = 0
-        if itsRequestInfo.sessionNr < 0:
+        if itsRequestInfo.sessionNr <= 0:
             curId = self.getEntryIdForSession()
 
         stmt = 'SELECT ep.id FROM its_epoch_history AS ep'
@@ -126,6 +126,7 @@ class ItsSqlConnection():
         self.__debug('Executing Statement:\n{}'.format(stmt))
         self.its_cur.execute(stmt)
         row = self.its_cur.fetchone()
+        self.__debug('Fetched row:\n{}'.format(row))
 
         hisId = 1
         if row:
@@ -187,7 +188,7 @@ class ItsSqlConnection():
             itsEpochInfo.d_fake_ls,
             entry_id
         )
-        print('>>>>>>>>>>>>>>>>>>>>>>>>> ' + stmt)
+        print(stmt)
         self.__debug('Executing statement:\n{}'.format(stmt))
         self.its_cur.execute(stmt)
         self.db_con.commit()
