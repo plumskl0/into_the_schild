@@ -99,8 +99,8 @@ class ItsDcgan():
 
     def initEpoch(
         self, epochs=10, n_noise=64, batch_size=2,
-        stepsHistory=50, enableImageGeneration=False,
-        cntGenerateImages=40
+        stepsHistory=1000, enableImageGeneration=False,
+        cntGenerateImages=200
     ):
         self.log.info('Initializing epoch...')
         self.max_epochs = epochs
