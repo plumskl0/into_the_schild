@@ -30,4 +30,4 @@ class ItsRequestInfo():
         self.max_confidence = max_confidence
         self.json_result = json_result
         self.img_array = img_array
-        self.img_dtyp = img_dtype
+        self.img_dtype = img_dtype
