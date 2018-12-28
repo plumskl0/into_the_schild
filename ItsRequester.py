@@ -154,8 +154,10 @@ class ItsRequester:
     def __sendGeneratedImages(self, imgsPath):
         for p in imgsPath:
             with open(p, 'rb') as img:
-                res = self.sendRequest(img)
-                reqInfo = self.getRequestInfoForResult(res, img)
+                content = img.read()
+
+            res = self.sendRequest(content)
+            reqInfo = self.getRequestInfoForResult(res, content)
 
             reqInfo.epoch = self.__getEpoch(p)
             self.logger.infoRequestInfo(reqInfo, p)
@@ -237,7 +239,6 @@ class ItsRequester:
 
     def getRequestInfoForResult(self, result, img):
         reqInfo = ItsRequestInfo()
-
         if result.ok:
             nn_class, max_confidence = self.getBestClassFromResult(result)
             reqInfo.nn_class = nn_class
@@ -248,8 +249,10 @@ class ItsRequester:
         else:
             reqInfo.sessionNr = 0
         reqInfo.epoch = 0
-        reqInfo.img_array = np.fromfile(img, dtype=np.uint8)
+        reqInfo.img_array = np.frombuffer(img, dtype=np.uint8)
         reqInfo.img_dtype = reqInfo.img_array.dtype.name
+        self.logger.debug('>>>>Image Array:\n{}'.format(reqInfo.img_array))
+        self.logger.debug('>>>>Image dtype:\n{}'.format(reqInfo.img_dtype))
         return reqInfo
 
     def getBestClassFromResult(self, result):

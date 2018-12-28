@@ -202,7 +202,7 @@ class ItsSqlConnection():
 
         stmt = 'INSERT INTO its.its_request_history ('
         stmt += 'session_id, epoch_nr, class, max_confidence,'
-        stmt += 'json_result, img_array, dtype_img, his_id)'
+        stmt += 'json_result, img_array, img_dtype, his_id)'
         stmt += 'VALUES ({},{},"{}",{},"{}","{}","{}",{})'.format(
             itsRequestInfo.sessionNr,
             itsRequestInfo.epoch,
@@ -210,7 +210,7 @@ class ItsSqlConnection():
             itsRequestInfo.max_confidence,
             itsRequestInfo.json_result,
             itsRequestInfo.img_array,
-            itsRequestInfo.img_dtyp,
+            itsRequestInfo.img_dtype,
             his_id
         )
 

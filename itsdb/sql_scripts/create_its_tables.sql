@@ -38,7 +38,7 @@ CREATE TABLE its_request_history (
     max_confidence FLOAT,
     json_result TEXT,
     img_array TEXT,
-    dtype_img TEXT,
+    img_dtype TEXT,
     his_id INT NOT NULL,
     insert_date DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (his_id , session_id , epoch_nr)

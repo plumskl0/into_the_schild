@@ -170,8 +170,8 @@ class ItsSessionManager():
         info.info_text = 'Debug Session with no SQL connection'
         info.cntBaseImages = -1
         info.enableImageGeneration = True
-        info.stepsHistory = 3
-        info.cntGenerateImages = 10
+        info.stepsHistory = 5
+        info.cntGenerateImages = 1
         info.batch_size = 2
         info.debug = True
 
