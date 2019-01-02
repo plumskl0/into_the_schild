@@ -8,6 +8,8 @@ from itsmisc.itscfg.ItsRequesterConfig import ItsRequesterConfig as ItsReqCfg
 
 class ItsConfig():
 
+    CONFIG_PATH = 'its.ini'
+
     # MySql config defaults
     PARAM_MYSQL = 'MySql'
     PARAM_HOST = 'host'
@@ -25,12 +27,12 @@ class ItsConfig():
     PARAM_URL = 'url'
     PARAM_KEY = 'key'
     PARAM_DELAY = 'delay'
-    PARAM_XML = 'xml'
+    PARAM_REQ_DIR = 'directory'
 
     DEF_URL = 'http://www.example.com'
     DEF_KEY = 'apikey'
     DEF_DELAY = 60
-    DEF_XML = False
+    DEF_REQ_DIR = 'request'
 
     def __init__(self, cfgPath):
         self.cfgPath = cfgPath
@@ -69,7 +71,7 @@ class ItsConfig():
             ItsConfig.PARAM_URL: ItsConfig.DEF_URL,
             ItsConfig.PARAM_KEY: ItsConfig.DEF_KEY,
             ItsConfig.PARAM_DELAY: ItsConfig.DEF_DELAY,
-            ItsConfig.PARAM_XML: ItsConfig.DEF_XML
+            ItsConfig.PARAM_REQ_DIR: ItsConfig.DEF_REQ_DIR
         }
 
     def isValid(self):
@@ -80,7 +82,7 @@ class ItsConfig():
                    self.req_cfg.url == ItsConfig.DEF_URL or
                    self.req_cfg.url == ItsConfig.DEF_KEY)
 
-    def isDebugValid(self):
+    def isRequestValid(self):
         # Defaults prüfen ohne SQL für DebugSession
         return not(self.req_cfg.url == ItsConfig.DEF_URL or
                    self.req_cfg.url == ItsConfig.DEF_KEY)
@@ -111,7 +113,7 @@ class ItsConfig():
         url = None
         key = None
         delay = None
-        xmlHistory = None
+        reqDir = None
 
         if self.cfg.has_option(ItsConfig.PARAM_REQ, ItsConfig.PARAM_URL):
             url = self.cfg.get(ItsConfig.PARAM_REQ, ItsConfig.PARAM_URL)
@@ -122,11 +124,10 @@ class ItsConfig():
         if self.cfg.has_option(ItsConfig.PARAM_REQ, ItsConfig.PARAM_DELAY):
             delay = self.cfg.getint(ItsConfig.PARAM_REQ, ItsConfig.PARAM_DELAY)
 
-        if self.cfg.has_option(ItsConfig.PARAM_REQ, ItsConfig.PARAM_XML):
-            xmlHistory = self.cfg.getboolean(
-                ItsConfig.PARAM_REQ, ItsConfig.PARAM_XML)
+        if self.cfg.has_option(ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_DIR):
+            reqDir = self.cfg.get(ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_DIR)
 
-        self.req_cfg = ItsReqCfg(url, key, delay, xmlHistory)
+        self.req_cfg = ItsReqCfg(url, key, delay, reqDir)
 
     def getRequesterConfig(self):
         return self.req_cfg

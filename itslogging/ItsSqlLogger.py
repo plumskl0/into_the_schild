@@ -6,8 +6,8 @@ from itslogging.ItsLogger import ItsLogger
 class ItsSqlLogger(ItsLogger):
 
     def __init__(self, db_con):
-        super().__init__(logName='its_sql')
-
+        super().__init__(logName='its_sql', debug=False)
+        
         self.db_con = db_con
 
     def logSessionInfo(self, itsSessionInfo):

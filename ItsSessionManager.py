@@ -21,11 +21,9 @@ from itsdb import ItsSqlConnection
 
 class ItsSessionManager():
 
-    CONFIG_PATH = 'its.ini'
-
     def __init__(self):
         self.log = ItsLogger('its_session_manager')
-        self.cfg = ItsConfig(ItsSessionManager.CONFIG_PATH)
+        self.cfg = ItsConfig(ItsConfig.CONFIG_PATH)
         self.firstRun = False
         self.ses_info = self.createDebugSession()
         # Initialisierung:
@@ -223,9 +221,9 @@ class ItsSessionManager():
                 for img in imgList:
                     # Bild doppelt als Basis eintragen, sonst gibt es Probleme
                     self.dcgan.setBaseImages([img, img])
-                    TODO: generierte Bilder in den requester_in folder schreiben
-                    TODO: Requester dauerhaft auf dem order prüfen und die 
-                          Klassifikationen in die DB schreiben
+                    # TODO: generierte Bilder in den requester_in folder schreiben
+                    # TODO: Requester dauerhaft auf dem order prüfen und die 
+                    #       Klassifikationen in die DB schreiben
                 # Sobald fertig mal alle Bilder als Grundlage nutzen
 
             else:
