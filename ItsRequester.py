@@ -6,23 +6,12 @@
     Benötigte Ordnerstruktur:
     req_in
         - Inputordner für Dateien
+        - Requester im Standalone / Ordnermodus
         - hier werden Dateien abgelegt, die an das NN gesendet werden sollen
         - Unterordner:
             - /done         - Klassifizierte Bilder
             - /done/error   - Bilder die durch einen Fehler nicht klassifiziert wurden
             - /trash        - Dateien die keine PNGs sind
-    req_out
-        - Outputordner für Dateien
-        - req_history.xml
-            - XML-Datei für Request Historie zum nachvollziehen
-            - Format:
-                <request_history>
-                    <request date="%H:%M:%S %d-%m-%Y">
-                        <image dtype='np'> NumpyArray </image>
-                        <result> JSON-Array </result>
-                    </request>
-                </request_history>
-
 '''
 import os
 import re
@@ -45,7 +34,6 @@ dirIn = os.path.join(dirItsRequests, 'req_in')
 dirDone = os.path.join(dirIn, 'done')
 dirTrash = os.path.join(dirIn, 'trash')
 dirError = os.path.join(dirDone, 'error')
-dirOut = os.path.join(dirItsRequests, 'req_out')
 
 # Dateien
 fileConfig = 'requester.ini'

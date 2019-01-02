@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+import numpy as np
 import mysql.connector as mysql
 
 
@@ -218,6 +219,35 @@ class ItsSqlConnection():
         self.its_cur.execute(stmt)
         self.db_con.commit()
 
+    def getMaxClasses(self):
+
+        # Infos aus dem View holen
+        stmt = 'SELECT * FROM its_class_max'
+        self.its_cur.execute(stmt)
+        max_list = []
+        for entry in self.its_cur:
+            # Tupel aus (id, class, confidence)
+            max_list.append(entry)
+
+        return max_list
+
+    def getImageFromRequestHistory(self, reqHistoryIds):
+
+        # History ID Array in String umwandeln
+        ids = str(reqHistoryIds)
+        ids = ids.replace('[', '').replace(']', '')
+
+        stmt = 'SELECT img_array FROM its_request_history WHERE id IN ({})'.format(
+            ids)
+
+        self.its_cur.execute(stmt)
+        images = []
+        for entry in self.its_cur:
+            img = entry.replace('[','').replace(']','')
+            img = np.fromstring(img, sep=',')
+            images.append(img)
+
+        return images
 
 if __name__ == "__main__":
     con = ItsSqlConnection(None)

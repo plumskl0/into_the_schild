@@ -45,6 +45,15 @@ CREATE TABLE its.its_request_history (
     PRIMARY KEY (id , session_id , epoch_nr)
 );
 
+CREATE VIEW its_class_max AS
+SELECT 
+    id, class, MAX(max_confidence) AS max_conf
+FROM
+    its_request_history
+WHERE
+	class not in ('-1', 'dummy')
+GROUP BY id, class;
+
 INSERT INTO its.its_session(
     session_id,
     max_epoch,

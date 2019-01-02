@@ -11,6 +11,7 @@
         - cntGenerateImages:int 
 '''
 import os
+import numpy as np
 from ItsDcgan import ItsDcgan, dirItsImages
 from ItsRequester import ItsRequester, dirItsRequests
 from itsmisc import ItsSessionInfo, ItsConfig
@@ -177,8 +178,60 @@ class ItsSessionManager():
 
         return info
 
+    def createAutoFindSession(self):
+        self.log.debug('Creating AutoFind SessionInfo.')
+        info = ItsSessionInfo()
 
+        info.sessionNr = 0
+        info.max_epoch = 25001
+        info.info_text = 'AutoFind Session'
+        info.cntBaseImages = -1
+        info.enableImageGeneration = True
+        info.stepsHistory = 100
+        info.cntGenerateImages = 100
+        info.batch_size = 2
+        info.debug = False
+
+        return info
+
+    def startAutoFindSession(self):
+        if self.checkIfSqlSessionIsReady():
+            self.log.info('Starting AutoFind session...')
+
+            # SessionInfo erzeugen
+            afSes = self.createAutoFindSession()
+            self.sql_con.insertSession(afSes)
+            self.sqlLog = ItsSqlLogger(self.sql_con)
+            
+
+            # Beste Klassen holen
+            maxList = self.sql_con.getMaxClasses()
+            bestIds = []
+            bestConfs = []
+            if maxList:
+                # Ids und Konfidenzen sammeln
+                for e in maxList:
+                    bestIds.append(e[0])
+                    bestConfs.append(e[2])
+            
+                self.log.info('Found {} classes with mean confidence of {}')
+
+                # Bilder holen
+                imgList = self.sql_con.getImageFromRequestHistory(bestIds)
+
+                # Bilder einzeln als Grundlage für das DCGAN nutzen
+                for img in imgList:
+                    # Bild doppelt als Basis eintragen, sonst gibt es Probleme
+                    self.dcgan.setBaseImages([img, img])
+                    TODO: generierte Bilder in den requester_in folder schreiben
+                    TODO: Requester dauerhaft auf dem order prüfen und die 
+                          Klassifikationen in die DB schreiben
+                # Sobald fertig mal alle Bilder als Grundlage nutzen
+
+            else:
+                self.log.error('No max classes found.')
+        
 # Debug main
 if __name__ == "__main__":
     s = ItsSessionManager()
-    s.startSqlDebugSession()
+    s.startAutoFindSession()

@@ -101,7 +101,7 @@ class ItsDcgan():
     def initEpoch(
         self, epochs=10, n_noise=64, batch_size=2,
         enableImageGeneration=False, stepsHistory=1000,
-        cntGenerateImages=200
+        cntGenerateImages=200, autoFind=False
     ):
         self.log.info('Initializing epoch...')
         self.max_epochs = epochs
@@ -117,30 +117,30 @@ class ItsDcgan():
         self.stepsHistory = stepsHistory
         # Anzahl der Generierten Bilder pro ImageGeneration
         self.enableImageGeneration = enableImageGeneration
+        # Erst mal noch hardcoded
+        self.imgShape = [None, 64, 64, 3]
         if self.enableImageGeneration:
             self.cntGenerateImages = cntGenerateImages
         else:
             self.cntGenerateImages = 0
 
-        self.checkFilesAndFolders()
+        if not autoFind:
+            self.checkFilesAndFolders()
+            self.images, self.labels = self.generateBaseData()
 
-        self.images, self.labels = self.generateBaseData()
-        # Erst mal noch hardcoded
-        self.imgShape = [None, 64, 64, 3]
+            # Anzahl der Bilder in der Basis
+            self.cntBaseImages = len(self.images)
+            if self.cntBaseImages:
+                self.log.info('Epoch initialized.')
+                # Fehler abfangen falls man weniger Bilder als Batchsize hat
+                if self.batch_size > self.cntBaseImages:
+                    self.batch_size = self.cntBaseImages
 
-        # Anzahl der Bilder in der Basis
-        self.cntBaseImages = len(self.images)
-        if self.cntBaseImages:
-            self.log.info('Epoch initialized.')
-            # Fehler abfangen falls man weniger Bilder als Batchsize hat
-            if self.batch_size > self.cntBaseImages:
-                self.batch_size = self.cntBaseImages
-
-            self.log.debugEpochInfo(self.getEpochInfo())
-            self.readyEpoch = True
-        else:
-            self.log.error(
-                'Epoch could not be initalized: No BaseImages found')
+                self.log.debugEpochInfo(self.getEpochInfo())
+                self.readyEpoch = True
+            else:
+                self.log.error(
+                    'Epoch could not be initalized: No BaseImages found')
 
     def checkFilesAndFolders(self):
         if not os.path.exists(self.dirBaseImgs):
@@ -488,6 +488,31 @@ class ItsDcgan():
                 self.log.error('Start error: Epoch not initialized.')
 
             self.log.error('Start error: DCGAN not initialized')
+
+#####################################################################
+# Neue Variante nach den Debugsessions: AutoFind
+
+    def initAutoFindSession(self, itsSessionInfo, sqlLog=None):
+        self.__init__(
+            itsSessionInfo.sessionNr
+        )
+
+        if sqlLog:
+            self.sqlLog = sqlLog
+
+        self.initEpoch(
+            epochs=itsSessionInfo.max_epoch,
+            batch_size=itsSessionInfo.batch_size,
+            enableImageGeneration=itsSessionInfo.enableImageGeneration,
+            stepsHistory=itsSessionInfo.stepsHistory,
+            cntGenerateImages=itsSessionInfo.cntGenerateImages,
+            autoFind=True
+        )
+
+    def setBaseImages(self, imgs):
+        self.images = np.array(imgs)
+        self.labels = np.ones(len(imgs))
+
 
 
 # Fürs Debugging und Testen
