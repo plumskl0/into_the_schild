@@ -31,11 +31,10 @@ class ItsRequester:
         if self.cfg.isRequestValid():
             self.log.info('Config valid. Preparing Requester.')
             self.log.info('To stop the requester enter \'y\'')
-            req_cfg = self.cfg.getRequesterConfig()
-            self.url = req_cfg.url
-            self.key = req_cfg.key
-            self.delay = req_cfg.delay
-            self.reqDir = req_cfg.request_directory
+            self.url = self.cfg.req_cfg.url
+            self.key = self.cfg.req_cfg.key
+            self.delay = self.cfg.req_cfg.delay
+            self.reqDir = self.cfg.req_cfg.request_directory
         else:
             self.log.error('Invalid config.')
 
@@ -43,21 +42,19 @@ class ItsRequester:
         if self.cfg.isRequestValid():
             if not os.path.exists(self.reqDir):
                 self.log.debug('Request directory does not exist.')
-                self.log.info('Creating requester directory \'{}\''.format(self.reqDir))
+                self.log.info(
+                    'Creating requester directory \'{}\''.format(self.reqDir))
                 os.makedirs(self.reqDir)
 
     def __initSqlLogger(self):
-        if not self.debug:
-            self.log.info('Creating SQL connection...')
-            sql = ItsSqlConnection(self.cfg.getMySqlConfig(), log=self.log)
-            if sql.dbExists:
-                self.log.info('SQL connection successful.')
-                self.log.info('Preparing SQL log...')
-                self.sqlLog = ItsSqlLogger(sql)
-            else:
-                self.log.error('SQL connection failed.')
+        self.log.info('Creating SQL connection...')
+        sql = ItsSqlConnection(self.cfg.sql_cfg, log=self.log)
+        if sql.dbExists:
+            self.log.info('SQL connection successful.')
+            self.log.info('Preparing SQL log...')
+            self.sqlLog = ItsSqlLogger(sql)
         else:
-            self.log.info('Debug mode without SQL connection.')
+            self.log.error('SQL connection failed.')
 
     def startClassification(self):
         self.log.info('Preparing classification thread for folder \'{}\''.format(
@@ -89,7 +86,7 @@ class ItsRequester:
     def __runClassification(self, imgDir):
         if self.isReady:
             self.log.info('Classification is ready.')
-        
+
         while self.isReady:
             self.log.info('Starting classification on folder \'{}\''
                           .format(imgDir))
@@ -109,10 +106,10 @@ class ItsRequester:
             res = self.sendRequest(content)
             reqInfo = self.getRequestInfoForResult(res, content)
 
-            reqInfo.sessionNr, reqInfo.epoch = self.__getSessionEpoch(p)
+            reqInfo.sessionNr, reqInfo.epoch, hisId = self.__getSessionEpoch(p)
             self.log.infoRequestInfo(reqInfo, p)
             if self.sqlLog:
-                self.sqlLog.logRequestInfo(reqInfo)
+                self.sqlLog.logRequestInfo(reqInfo, hisId)
             self.__markImageAsClassified(p)
 
     def __markImageAsClassified(self, img):
@@ -130,10 +127,11 @@ class ItsRequester:
             # [0] = Session, [1] = Epoche
             info = name.split('_')
         else:
-            info = (0,0)
-        
-        return int(info[0]), int(info[1])
+            info = (0, 0, 0)
 
+        self.log.info('Session {} - Epoch {} - History ID: {}'.format(
+            info[0], info[1], info[2]))
+        return int(info[0]), int(info[1]), int(info[2])
 
     def __collectImagePaths(self, imgDir):
         imgs = []
@@ -159,7 +157,7 @@ class ItsRequester:
         time.sleep(1)
         if self.debug:
             self.log.debug('Sending request...')
-        
+
         return requests.post(myUrl, data=myData, files=myFiles)
 
     def getRequestInfoForResult(self, result, img):
@@ -196,9 +194,9 @@ if __name__ == "__main__":
     # Die Namen der Bilder müssen die Infos (SessionNr, Epoche etc.) beinhalten
     # Beispiel: 'session_epoch_.png'
     cfg = ItsConfig(ItsConfig.CONFIG_PATH)
-    requester = ItsRequester(cfg, debug=False)
+    requester = ItsRequester(cfg, debug=True)
     requester.startClassification()
-    
+
     while requester.isReady:
         print('Requester is running...')
         print('Too view information check the requester log file.')

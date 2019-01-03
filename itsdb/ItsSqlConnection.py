@@ -104,6 +104,18 @@ class ItsSqlConnection():
         stmt = re.sub(' +', ' ', stmt)
         return stmt
 
+    def __getHisIdForEntry(self, itsEpochInfo):
+        stmt = 'SELECT id FROM its_epoch_history WHERE '
+        stmt += 'session_id = {} and epoch_nr = {} '.format(
+            itsEpochInfo.sessionNr,
+            itsEpochInfo.epoch
+        )
+        stmt += 'ORDER BY insert_date DESC LIMIT 1'
+
+        self.its_cur.execute(stmt)
+        hisId, = self.its_cur.fetchone()
+        return hisId
+
     def __debug(self, msg):
         if self.log:
             self.log.debug(msg)
@@ -193,13 +205,11 @@ class ItsSqlConnection():
         self.__debug('Executing statement:\n{}'.format(stmt))
         self.its_cur.execute(stmt)
         self.db_con.commit()
+        return self.__getHisIdForEntry(itsEpochInfo)
 
-    def insertRequest(self, itsRequestInfo):
+    def insertRequest(self, itsRequestInfo, hisId):
 
         self.__debug('Preparing EpochInfo for insert...')
-
-        # Zunächst History ID über SessionEntry ermitteln
-        his_id = self.__getHistoryIdForRequest(itsRequestInfo)
 
         stmt = 'INSERT INTO its.its_request_history ('
         stmt += 'session_id, epoch_nr, class, max_confidence,'
@@ -212,7 +222,7 @@ class ItsSqlConnection():
             itsRequestInfo.json_result,
             itsRequestInfo.img_array,
             itsRequestInfo.img_dtype,
-            his_id
+            hisId
         )
 
         self.__debug('Executing statement:\n{}'.format(stmt))

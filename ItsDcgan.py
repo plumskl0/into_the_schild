@@ -12,35 +12,31 @@ from itsmisc import ItsEpochInfo, ItsSessionInfo
 
 class ItsDcgan():
 
-    def __init__(self):
+    def __init__(self, itsSqlLog=None):
         # TODO: Debugmodus abschalten
         self.log = ItsLogger(logName='its_dcgan', debug=True)
-        self.sqlLog = None
+        self.sqlLog = itsSqlLog
         self.isDcganReady = False
         self.isEpochReady = False
 
+        self.n_noise = 64
+        self.imgShape = [None, 64, 64, 3]
         self.outputDir = None
-        self.sqlLog = None
         self.tfSession = None
         # {Session}_{Epoch}_{ImgNr}.png
-        self.imageNameFormat = '{}_{}_{}.png'
+        self.imageNameFormat = '{}_{}_{}_{}.png'
 
     def initEpoch(
-        self, sessionNr=0, max_epochs=10, batch_size=2,
+        self, max_epochs=10, batch_size=2,
         enableImageGeneration=False, stepsHistory=1000,
         cntGenerateImages=10
     ):
         self.log.info('Initializing epoch...')
-        self.n_noise = 64
         self.index_in_epoch = 0
         self.epochs_completed = 0
         self.debugOutputSteps = 2
-        self.images = None
-        self.labels = None
-        self.imgShape = [None, 64, 64, 3]
 
         # Batchsize ist am Anfang so groß wie die Datenbasis
-        self.sessionNr = sessionNr
         self.max_epochs = max_epochs
         self.batch_size = batch_size
 
@@ -57,64 +53,67 @@ class ItsDcgan():
         self.isEpochReady = True
 
     def initDcgan(self):
-        if self.isEpochReady:
-            self.log.info('Initializing DCGAN...')
-            tf.reset_default_graph()
+        self.log.info('Initializing DCGAN...')
+        tf.reset_default_graph()
 
-            self.x_in = tf.placeholder(
-                dtype=tf.float32, shape=self.imgShape, name='x_in')
-            self.noise = tf.placeholder(
-                dtype=tf.float32, shape=[None, self.n_noise])
+        self.x_in = tf.placeholder(
+            dtype=tf.float32, shape=self.imgShape, name='x_in')
+        self.noise = tf.placeholder(
+            dtype=tf.float32, shape=[None, self.n_noise])
 
-            self.keep_prob = tf.placeholder(dtype=tf.float32, name='keep_prob')
-            self.is_training = tf.placeholder(
-                dtype=tf.bool, name='is_training')
+        self.keep_prob = tf.placeholder(dtype=tf.float32, name='keep_prob')
+        self.is_training = tf.placeholder(
+            dtype=tf.bool, name='is_training')
 
-            self.g = self.generator(self.noise)
-            d_real = self.discriminator(self.x_in)
-            d_fake = self.discriminator(self.g, reuse=True)
+        self.g = self.generator(self.noise)
+        d_real = self.discriminator(self.x_in)
+        d_fake = self.discriminator(self.g, reuse=True)
 
-            vars_g = [var for var in tf.trainable_variables(
-            ) if var.name.startswith("generator")]
-            vars_d = [var for var in tf.trainable_variables(
-            ) if var.name.startswith("discriminator")]
+        vars_g = [var for var in tf.trainable_variables(
+        ) if var.name.startswith("generator")]
+        vars_d = [var for var in tf.trainable_variables(
+        ) if var.name.startswith("discriminator")]
 
-            d_reg = tf.contrib.layers.apply_regularization(
-                tf.contrib.layers.l2_regularizer(1e-6), vars_d)
-            g_reg = tf.contrib.layers.apply_regularization(
-                tf.contrib.layers.l2_regularizer(1e-6), vars_g)
+        d_reg = tf.contrib.layers.apply_regularization(
+            tf.contrib.layers.l2_regularizer(1e-6), vars_d)
+        g_reg = tf.contrib.layers.apply_regularization(
+            tf.contrib.layers.l2_regularizer(1e-6), vars_g)
 
-            self.loss_d_real = self.binary_cross_entropy(
-                tf.ones_like(d_real), d_real)
-            self.loss_d_fake = self.binary_cross_entropy(
-                tf.zeros_like(d_fake), d_fake)
+        self.loss_d_real = self.binary_cross_entropy(
+            tf.ones_like(d_real), d_real)
+        self.loss_d_fake = self.binary_cross_entropy(
+            tf.zeros_like(d_fake), d_fake)
 
-            self.loss_g = tf.reduce_mean(self.binary_cross_entropy(
-                tf.ones_like(d_fake), d_fake))
-            self.loss_d = tf.reduce_mean(
-                0.5 * (self.loss_d_real + self.loss_d_fake))
+        self.loss_g = tf.reduce_mean(self.binary_cross_entropy(
+            tf.ones_like(d_fake), d_fake))
+        self.loss_d = tf.reduce_mean(
+            0.5 * (self.loss_d_real + self.loss_d_fake))
 
-            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-            with tf.control_dependencies(update_ops):
-                self.optimizer_d = tf.train.RMSPropOptimizer(
-                    learning_rate=0.00015).minimize(self.loss_d + d_reg, var_list=vars_d)
-                self.optimizer_g = tf.train.RMSPropOptimizer(
-                    learning_rate=0.00015).minimize(self.loss_g + g_reg, var_list=vars_g)
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            self.optimizer_d = tf.train.RMSPropOptimizer(
+                learning_rate=0.00015).minimize(self.loss_d + d_reg, var_list=vars_d)
+            self.optimizer_g = tf.train.RMSPropOptimizer(
+                learning_rate=0.00015).minimize(self.loss_g + g_reg, var_list=vars_g)
 
-            self.tfSession = tf.Session()
-            self.tfSession.run(tf.global_variables_initializer())
-            self.readyDcgan = True
-            self.log.info('DCGAN initialized.')
-        else:
-            self.log.error('DCGAN not initialized. Epoch not yet ready.')
+        self.tfSession = tf.Session()
+        self.tfSession.run(tf.global_variables_initializer())
+        self.isDcganReady = True
+        self.log.info('DCGAN initialized.')
 
     def __allReady(self):
         ready = False
 
+        self.log.debug('All ready check:')
+        self.log.debug('Epoch ready? \t{}'.format(self.isEpochReady))
+        self.log.debug('Dcgan ready? \t{}'.format(self.isDcganReady))
+        self.log.debug('Images ready? \t{}'.format(len(self.images)))
+        self.log.debug('Labels ready? \t{}'.format(len(self.labels)))
+
         if (self.isEpochReady and
             self.isDcganReady and
-            self.images and
-                self.labels):
+            self.images.any() and
+                self.labels.any()):
             ready = True
 
         return ready
@@ -139,7 +138,7 @@ class ItsDcgan():
 
     def setSessionBaseImages(self, sessionNr, imgs):
         self.sessionNr = sessionNr
-        self.images = imgs
+        self.images = np.array(imgs)
         self.labels = np.ones(len(imgs))
         self.cntBaseImages = len(imgs)
 
@@ -163,7 +162,7 @@ class ItsDcgan():
         end = self.index_in_epoch
         return self.images[start:end], self.labels[start:end]
 
-    def saveEpochImages(self, imgs, epoch):
+    def saveEpochImages(self, imgs, epoch, hisId):
         if self.outputDir:
             self.log.info('Generating {} images in folder {}'.format(
                 len(imgs), self.outputDir))
@@ -171,7 +170,7 @@ class ItsDcgan():
             imgs = (imgs * 255).round().astype(np.uint8)
 
             for i in range(len(imgs)):
-                imgName = self.imageNameFormat.format(self.sessionNr, epoch, i)
+                imgName = self.imageNameFormat.format(self.sessionNr, epoch, hisId, i)
                 imgPath = os.path.join(self.outputDir, imgName)
                 self.log.debug('Generating image {}'.format(imgPath))
                 imageio.imwrite(imgPath, imgs[i])
@@ -335,16 +334,14 @@ class ItsDcgan():
                     )
 
                     self.log.debugEpochInfo(eLoss)
-
-                    if self.sqlLog:
-                        self.sqlLog.logEpochInfo(eLoss)
+                    hisId = self.sqlLog.logEpochInfo(eLoss)
 
                     # Bilder generieren
                     if self.enableImageGeneration:
                         self.log.info('Epoch {}: Generating {} images'.format(
                             i, self.cntGenerateImages))
                         imgs = self.generateImages(self.cntGenerateImages)
-                        self.saveEpochImages(imgs, i)
+                        self.saveEpochImages(imgs, i, hisId)
 
                 if i % self.debugOutputSteps:
                     end = time.time() - start

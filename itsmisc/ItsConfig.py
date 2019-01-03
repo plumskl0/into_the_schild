@@ -32,7 +32,7 @@ class ItsConfig():
     DEF_URL = 'http://www.example.com'
     DEF_KEY = 'apikey'
     DEF_DELAY = 60
-    DEF_REQ_DIR = 'request'
+    DEF_REQ_DIR = 'its_request'
 
     def __init__(self, cfgPath):
         self.cfgPath = cfgPath
@@ -128,9 +128,3 @@ class ItsConfig():
             reqDir = self.cfg.get(ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_DIR)
 
         self.req_cfg = ItsReqCfg(url, key, delay, reqDir)
-
-    def getRequesterConfig(self):
-        return self.req_cfg
-
-    def getMySqlConfig(self):
-        return self.sql_cfg
