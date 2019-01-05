@@ -35,6 +35,7 @@ class ItsSqlConnection():
         )
         self.__debug('Connected to database.')
         self.its_cur = self.db_con.cursor()
+        self.its_cur.execute('use its')
         self.dbExists = True
 
     def __createConnection(self):
@@ -229,17 +230,25 @@ class ItsSqlConnection():
         self.its_cur.execute(stmt)
         self.db_con.commit()
 
-    def getMaxClasses(self):
+    def getMaxConfIds(self):
 
-        # Infos aus dem View holen
-        stmt = 'SELECT * FROM its_class_max'
+        # Alle vorhandenen Klassen finden
+        stmt = 'SELECT DISTINCT class FROM its_class_max'
         self.its_cur.execute(stmt)
-        max_list = []
+        classList = []
         for entry in self.its_cur:
-            # Tupel aus (id, class, confidence)
-            max_list.append(entry)
+            # Tupel aus (class,)
+            classList.append(entry[0])
 
-        return max_list
+        maxIds = []
+        # RequestID mit der höchsten Konfidenz ermitteln
+        for c in classList:
+            stmt = 'SELECT id FROM its_class_max WHERE class = "{}" ORDER BY max_conf DESC LIMIT 1'.format(c)
+            self.__debug(stmt)
+            self.its_cur.execute(stmt)
+            maxIds.append(self.its_cur.fetchone()[0])
+
+        return maxIds
 
     def getImageFromRequestHistory(self, reqHistoryIds):
 
@@ -250,16 +259,17 @@ class ItsSqlConnection():
         stmt = 'SELECT img_array FROM its_request_history WHERE id IN ({})'.format(
             ids)
 
+        self.__debug(stmt)
         self.its_cur.execute(stmt)
         images = []
         for entry in self.its_cur:
-            img = entry.replace('[','').replace(']','')
-            img = np.fromstring(img, sep=',')
+            img = entry[0].replace('[','').replace(']','')
+            img = np.fromstring(img, sep=' ')
             images.append(img)
 
         return images
 
 if __name__ == "__main__":
     con = ItsSqlConnection(None)
-    con.debugConnection('192.168.88.129', 'root', '1212')
-    # con.createDefaultDatabase()
+    con.debugConnection('127.0.0.1', 'its', '1212')
+    # con.createDefaultDatabase()158491'
