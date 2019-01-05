@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import time
 import imageio
 import numpy as np
 from ItsDcgan import ItsDcgan
@@ -118,10 +119,10 @@ class ItsSessionManager():
         session = self.__createDefaultSession()
         session.sessionNr = 2
         session.max_epoch = 250001
-        session.info_text = 'Kompletter Zweiter Durchlauf mit allen Basisbildern und das DCGAN vergisst, was es gelernt hat.'
+        session.info_text = 'DEBUG Zweiter Durchlauf mit allen Basisbildern und das DCGAN vergisst, was es gelernt hat.'
         session.enableImageGeneration = True
         session.stepsHistory = 100
-        session.cntGenerateImages = 40
+        session.cntGenerateImages = 120
 
         imgs = self.getImages()
         session.cntBaseImages = len(imgs)
@@ -145,7 +146,35 @@ class ItsSessionManager():
             self.log.error('No images in input dir \'{}\''.format(self.outDir))
 
 
+    def thirdRun(self):
+        s.prepareRun()
+        session = self.__createDefaultSession()
+        session.sessionNr = 3
+        session.max_epoch = 25001
+        session.info_text = 'Dritter Durchlauf mit allen Basisbildern.'
+        session.enableImageGeneration = True
+        session.stepsHistory = 100
+        session.cntGenerateImages = 120
+
+        imgs = self.getImages()
+        session.cntBaseImages = len(imgs)
+
+        if len(imgs) > 0:
+            self.sql.insertSession(session)
+
+            self.dcgan.setSessionBaseImages(session.sessionNr, imgs)
+            self.dcgan.initEpoch(
+                session.max_epoch,
+                session.batch_size,
+                session.enableImageGeneration,
+                session.stepsHistory,
+                session.cntGenerateImages
+            )
+            self.dcgan.start()
+        else:
+            self.log.error('No images in input dir \'{}\''.format(self.outDir))
 
 if __name__ == "__main__":
     s = ItsSessionManager()
     s.secondRun()
+    s.thirdRun()
