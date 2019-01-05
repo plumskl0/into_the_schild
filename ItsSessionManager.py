@@ -16,6 +16,7 @@ class ItsSessionManager():
         self.log = ItsLogger('its_session_manager')
         self.config = self.__createConfig()
         self.sql = self.__createConnection()
+        self.sqlLog = None
         self.__prepareFolders()
 
     def __createConfig(self):
@@ -52,7 +53,8 @@ class ItsSessionManager():
             os.makedirs(self.inDir)
 
     def prepareRun(self):
-        self.sqlLog = ItsSqlLogger(self.sql)
+        if not self.sqlLog:
+            self.sqlLog = ItsSqlLogger(self.sql)
         self.dcgan = ItsDcgan(self.sqlLog)
         self.dcgan.outputDir = self.outDir
         self.dcgan.initDcgan()
@@ -84,8 +86,14 @@ class ItsSessionManager():
         return imgs
 
     def firstRun(self):
+        s.prepareRun()
         session = self.__createDefaultSession()
+        session.sessionNr = 1
+        session.max_epoch = 25001
         session.info_text = 'Erster Durchlauf mit einzelnen Bildern aus dem Input Ordner. Das trainierte DCGAN wird dabei immer beibehalten.'
+        session.enableImageGeneration = True
+        session.stepsHistory = 100
+        session.cntGenerateImages = 40
 
         imgs = self.getImages()
         session.cntBaseImages = len(imgs)
@@ -106,8 +114,38 @@ class ItsSessionManager():
         else:
             self.log.error('No images in input dir \'{}\''.format(self.outDir))
 
+    def secondRun(self):
+        session = self.__createDefaultSession()
+        session.sessionNr = 2
+        session.max_epoch = 250001
+        session.info_text = 'Kompletter Zweiter Durchlauf mit allen Basisbildern und das DCGAN vergisst, was es gelernt hat.'
+        session.enableImageGeneration = True
+        session.stepsHistory = 100
+        session.cntGenerateImages = 40
+
+        imgs = self.getImages()
+        session.cntBaseImages = len(imgs)
+
+        if len(imgs) > 0:
+            self.sql.insertSession(session)
+
+            for img in imgs:
+                s.prepareRun()
+                self.dcgan.setSessionBaseImages(session.sessionNr, [img, img])
+                self.dcgan.initEpoch(
+                    session.max_epoch,
+                    session.batch_size,
+                    session.enableImageGeneration,
+                    session.stepsHistory,
+                    session.cntGenerateImages
+                )
+                self.dcgan.start()
+                del self.dcgan
+        else:
+            self.log.error('No images in input dir \'{}\''.format(self.outDir))
+
+
 
 if __name__ == "__main__":
     s = ItsSessionManager()
-    s.prepareRun()
-    s.firstRun()
+    s.secondRun()

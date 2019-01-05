@@ -23,7 +23,7 @@ class ItsDcgan():
         self.imgShape = [None, 64, 64, 3]
         self.outputDir = None
         self.tfSession = None
-        # {Session}_{Epoch}_{ImgNr}.png
+        # {Session}_{Epoch}_{HisId}_{ImgNr}.png
         self.imageNameFormat = '{}_{}_{}_{}.png'
 
     def initEpoch(
@@ -34,7 +34,7 @@ class ItsDcgan():
         self.log.info('Initializing epoch...')
         self.index_in_epoch = 0
         self.epochs_completed = 0
-        self.debugOutputSteps = 2
+        self.debugOutputSteps = 100
 
         # Batchsize ist am Anfang so groß wie die Datenbasis
         self.max_epochs = max_epochs
@@ -276,7 +276,7 @@ class ItsDcgan():
                 'Starting DCGAN for {} epochs...'.format(self.max_epochs))
             start, end = None, None
             for i in range(self.max_epochs):
-                if i % self.debugOutputSteps:
+                if not i % self.debugOutputSteps:
                     self.log.info('Starting Epoch {}'.format(i))
                     start = time.time()
 
@@ -310,7 +310,8 @@ class ItsDcgan():
                     pass
 
                 if train_d:
-                    self.log.debug('Training: Discriminator')
+                    if not i % self.debugOutputSteps:
+                        self.log.debug('Training: Discriminator')
                     self.tfSession.run(self.optimizer_d, feed_dict={
                         self.noise: n,
                         self.x_in: batch,
@@ -319,7 +320,8 @@ class ItsDcgan():
                     })
 
                 if train_g:
-                    self.log.debug('Training: Generator')
+                    if not i % self.debugOutputSteps:
+                        self.log.debug('Training: Generator')
                     self.tfSession.run(self.optimizer_g, feed_dict={
                         self.noise: n,
                         self.keep_prob: keep_prob_train,
@@ -343,7 +345,7 @@ class ItsDcgan():
                         imgs = self.generateImages(self.cntGenerateImages)
                         self.saveEpochImages(imgs, i, hisId)
 
-                if i % self.debugOutputSteps:
+                if not i % self.debugOutputSteps:
                     end = time.time() - start
                     self.log.info(
                         'Epoch {} completed in {:2.3f}s.'.format(i, end))
