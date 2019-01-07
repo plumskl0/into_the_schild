@@ -32,15 +32,15 @@ class ItsSessionManager():
         if self.config.isValid():
             self.log.info('Creating SQL connection...')
             sql = ItsSqlConnection(self.config.sql_cfg, log=self.log)
-            if sql.createdDefaultDb:
-                self.log.error('Created default database.')
-                return sql
-            elif sql.dbExists:
+
+            if sql.dbExists:
                 self.log.info('SQL Connection successful.')
                 return sql
+            else:
+                self.log.error('No SQL connection.')
+                return None
         else:
-            self.log.error('No SQL connection.')
-            return None
+            self.log.error('Invalid config. Please check the config.')
 
     def __prepareFolders(self):
         self.outDir = self.config.req_cfg.request_directory
@@ -118,7 +118,7 @@ class ItsSessionManager():
     def secondRun(self):
         session = self.__createDefaultSession()
         session.sessionNr = 2
-        session.max_epoch = 250001
+        session.max_epoch = 25001
         session.info_text = 'DEBUG Zweiter Durchlauf mit allen Basisbildern und das DCGAN vergisst, was es gelernt hat.'
         session.enableImageGeneration = True
         session.stepsHistory = 100
@@ -177,4 +177,4 @@ class ItsSessionManager():
 if __name__ == "__main__":
     s = ItsSessionManager()
     s.secondRun()
-    s.thirdRun()
+    # s.thirdRun()

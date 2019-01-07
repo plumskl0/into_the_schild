@@ -104,7 +104,8 @@ class ItsRequester:
                 content = img.read()
 
             res = self.sendRequest(content)
-            reqInfo = self.getRequestInfoForResult(res, content)
+            reqInfo = self.getRequestInfoForResult(res)
+            reqInfo.img_blob = content
 
             reqInfo.sessionNr, reqInfo.epoch, hisId = self.__getSessionEpoch(p)
             self.log.infoRequestInfo(reqInfo, p)
@@ -160,7 +161,7 @@ class ItsRequester:
 
         return requests.post(myUrl, data=myData, files=myFiles)
 
-    def getRequestInfoForResult(self, result, img):
+    def getRequestInfoForResult(self, result):
         reqInfo = ItsRequestInfo()
         if result.ok:
             nn_class, max_confidence = self.getBestClassFromResult(result)
@@ -169,11 +170,7 @@ class ItsRequester:
             reqInfo.json_result = result.json()
         reqInfo.sessionNr = 0
         reqInfo.epoch = 0
-        reqInfo.img_array = np.frombuffer(img, dtype=np.uint8)
-        reqInfo.img_dtype = reqInfo.img_array.dtype.name
-        if self.debug:
-            self.log.debug('Image Array:\n{}'.format(reqInfo.img_array))
-            self.log.debug('Image dtype:\n{}'.format(reqInfo.img_dtype))
+
         return reqInfo
 
     def getBestClassFromResult(self, result):
