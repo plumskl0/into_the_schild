@@ -2,6 +2,7 @@
 import os
 import re
 import time
+import imageio
 import requests
 import numpy as np
 from threading import Thread
@@ -100,17 +101,21 @@ class ItsRequester:
 
     def __sendGeneratedImages(self, imgsPath):
         for p in imgsPath:
-            with open(p, 'rb') as img:
-                content = img.read()
+            if self.isReady:
+                with open(p, 'rb') as img:
+                    content = img.read()
 
-            res = self.sendRequest(content)
-            reqInfo = self.getRequestInfoForResult(res, content)
+                res = self.sendRequest(content)
+                reqInfo = self.getRequestInfoForResult(res, p)
 
-            reqInfo.sessionNr, reqInfo.epoch, hisId = self.__getSessionEpoch(p)
-            self.log.infoRequestInfo(reqInfo, p)
-            if self.sqlLog:
-                self.sqlLog.logRequestInfo(reqInfo, hisId)
-            self.__markImageAsClassified(p)
+                reqInfo.sessionNr, reqInfo.epoch, hisId = self.__getSessionEpoch(p)
+                self.log.infoRequestInfo(reqInfo, p)
+                if self.sqlLog:
+                    self.sqlLog.logRequestInfo(reqInfo, hisId)
+                self.__markImageAsClassified(p)
+            else:
+                self.log.info('Classification stopped...')
+                break
 
     def __markImageAsClassified(self, img):
         # Bilder werden aus dem Ordner gelöscht
@@ -145,13 +150,10 @@ class ItsRequester:
 
     def sendRequest(self, img):
         self.log.debug('Preparing request for Image...')
-        res = None
 
         myUrl = self.url
         myData = {ItsConfig.PARAM_KEY: self.key}
 
-        send = False
-        firstWait = True
         myFiles = {'image': img}
         # Kleines delay einbauen um 'too_many_requests' zu vermeiden
         time.sleep(1)
@@ -160,7 +162,7 @@ class ItsRequester:
 
         return requests.post(myUrl, data=myData, files=myFiles)
 
-    def getRequestInfoForResult(self, result, img):
+    def getRequestInfoForResult(self, result, imgPath):
         reqInfo = ItsRequestInfo()
         if result.ok:
             nn_class, max_confidence = self.getBestClassFromResult(result)
@@ -169,11 +171,11 @@ class ItsRequester:
             reqInfo.json_result = result.json()
         reqInfo.sessionNr = 0
         reqInfo.epoch = 0
-        reqInfo.img_array = np.frombuffer(img, dtype=np.uint8)
+        reqInfo.img_array = imageio.imread(imgPath)
         reqInfo.img_dtype = reqInfo.img_array.dtype.name
         if self.debug:
-            self.log.debug('Image Array:\n{}'.format(reqInfo.img_array))
-            self.log.debug('Image dtype:\n{}'.format(reqInfo.img_dtype))
+            self.log.debug('Image Array:\t{}'.format(reqInfo.img_array.shape))
+            self.log.debug('Image dtype:\t{}'.format(reqInfo.img_dtype))
         return reqInfo
 
     def getBestClassFromResult(self, result):
