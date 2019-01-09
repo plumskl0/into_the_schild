@@ -1,7 +1,5 @@
-DROP DATABASE IF EXISTS its;
-CREATE DATABASE its;
 
-CREATE TABLE its.its_session
+CREATE TABLE its_session
 (
     id INT NOT NULL AUTO_INCREMENT,
     session_id INT NOT NULL,
@@ -14,7 +12,7 @@ CREATE TABLE its.its_session
     PRIMARY KEY (id, session_id)
 );
 
-CREATE TABLE its.its_epoch_history (
+CREATE TABLE its_epoch_history (
     id INT NOT NULL AUTO_INCREMENT,
     session_id INT NOT NULL,
     epoch_nr INT NOT NULL,
@@ -29,15 +27,14 @@ CREATE TABLE its.its_epoch_history (
     PRIMARY KEY (id, session_id , epoch_nr)
 );
 
-CREATE TABLE its.its_request_history (
+CREATE TABLE its_request_history (
     id INT NOT NULL AUTO_INCREMENT,
     session_id INT NOT NULL,
     epoch_nr INT NOT NULL,
     class TEXT,
     max_confidence FLOAT,
     json_result TEXT,
-    img_array TEXT,
-    img_dtype TEXT,
+    img_blob BLOB,
     his_id INT NOT NULL,
     insert_date DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (his_id , session_id , epoch_nr)
@@ -45,16 +42,8 @@ CREATE TABLE its.its_request_history (
     PRIMARY KEY (id , session_id , epoch_nr)
 );
 
-CREATE VIEW its_class_max AS
-SELECT 
-    id, class, MAX(max_confidence) AS max_conf
-FROM
-    its_request_history
-WHERE
-	class not in ('-1', 'dummy')
-GROUP BY id, class;
 
-INSERT INTO its.its_session(
+INSERT INTO its_session(
     session_id,
     max_epoch,
     info_text,
@@ -71,7 +60,7 @@ VALUES (
     0
 );
 
-INSERT INTO its.its_epoch_history (
+INSERT INTO its_epoch_history (
     session_id,
     epoch_nr,
     disc_loss,
@@ -90,14 +79,13 @@ VALUES (
     1
 );
 
-INSERT INTO its.its_request_history (
+INSERT INTO its_request_history (
     session_id,
     epoch_nr,
     class,
     max_confidence,
     json_result,
-    img_array,
-    img_dtype,
+    img_blob,
     his_id
 )
 VALUES (
@@ -106,7 +94,6 @@ VALUES (
     'dummy',
     0,
     '-1',
-    '-1',
-    '-1',
+    NULL,
     1
 );

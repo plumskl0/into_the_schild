@@ -13,7 +13,6 @@ class ItsSqlConnection():
         self.sql_cfg = slq_cfg
         self.log = log
         self.dbExists = False
-        self.createdDefaultDb = False
         self.db_con = None
         try:
             self.__createConnection()
@@ -26,20 +25,9 @@ class ItsSqlConnection():
             self.db_con.rollback()
             self.db_con.close()
 
-    def debugConnection(self, host, user, passw):
-        self.__debug('Trying to connect to database...')
-        self.db_con = mysql.connect(
-            host=host,
-            user=user,
-            passwd=passw
-        )
-        self.__debug('Connected to database.')
-        self.its_cur = self.db_con.cursor()
-        self.its_cur.execute('use its')
-        self.dbExists = True
-
     def __createConnection(self):
         self.__debug('Trying to connect to database...')
+        print(self.sql_cfg.host)
         self.db_con = mysql.connect(
             host=self.sql_cfg.host,
             user=self.sql_cfg.user,
@@ -48,7 +36,7 @@ class ItsSqlConnection():
         self.__debug('Connected to database.')
 
     def __checkDatabase(self):
-        self.__debug('Checking if Database exists...')
+        self.__debug('Checking if database \'{}\' exists...'.format(self.sql_cfg.database))
         c = self.db_con.cursor()
         c.execute('SHOW DATABASES')
 
@@ -56,23 +44,22 @@ class ItsSqlConnection():
         for db in c:
             if self.sql_cfg.database in db:
                 self.dbExists = True
-                self.its_cur = c
 
         if self.dbExists:
-            self.__debug('USE {}'.format(self.sql_cfg.database))
-            self.its_cur.execute('USE {}'.format(self.sql_cfg.database))
-
-        self.__debug('Database exists is \'{}\''.format(self.dbExists))
-        if not self.dbExists:
-            self.its_cur = c
+            self.__debug('Database \'{}\' exists'.format(self.sql_cfg.database))
+        else:        
             self.createDefaultDatabase()
 
     def createDefaultDatabase(self,):
-        self.__debug('Database does not exist. Creating default...')
+        self.__debug('Database does not exist. Creating database \'{}\''.format(self.sql_cfg.database))
+        cursor = self.db_con.cursor()
+        cursor.execute('CREATE DATABASE {}'.format(self.sql_cfg.database))
+        self.db_con.commit()
+        cursor.close()
         self.executeFile(ItsSqlConnection.DEFAULT_DATABASE_FILE)
-        self.its_cur.execute('USE its')
-        self.createdDefaultDb = True
+        self.dbExists = True
 
+   
     def executeFile(self, filePath):
         self.__debug('Executing {}'.format(filePath))
         statements = []
@@ -88,16 +75,22 @@ class ItsSqlConnection():
 
         self.__debug('Found {} statemens'.format(len(statements)))
         self.__executeStatements(statements)
+        self.__debug('Database \'{}\' created.'.format(self.sql_cfg.database))
 
     def __executeStatements(self, statements):
         if not self.dbExists:
             for s in statements:
+                print('yoo')
+                print(s)
+                cursor = self.db_con.cursor()
+                cursor.execute('USE {}'.format(self.sql_cfg.database))
                 self.__debug('Executing Statement:\n{}'.format(s))
-                s = self.__formatStatements(s)
-                self.its_cur.execute(s)
+                s = self.__formatFileStatements(s)
+                cursor.execute(s)
                 self.db_con.commit()
+                cursor.close()
 
-    def __formatStatements(self, stmt):
+    def __formatFileStatements(self, stmt):
         # alles in eine Zeile bringen
         stmt = re.sub('\n', ' ', stmt)
         stmt = stmt.strip()
@@ -113,15 +106,37 @@ class ItsSqlConnection():
         )
         stmt += 'ORDER BY insert_date DESC LIMIT 1'
 
-        self.its_cur.execute(stmt)
-        hisId, = self.its_cur.fetchone()
+        cursor = self.__getCursor()
+
+        self.__debugStatement(stmt)
+        cursor.execute(stmt)
+
+        hisId, = cursor.fetchone()
+        cursor.close()
+
         return hisId
 
-    def __debug(self, msg):
-        if self.log:
-            self.log.debug(msg)
-        else:
-            print(msg)
+    def getEntryIdForSession(self):
+        # Nächste Id holen
+        stmt = 'SELECT AUTO_INCREMENT'
+        stmt += ' FROM information_schema.TABLES'
+        stmt += ' WHERE TABLE_SCHEMA = "{}"'.format(self.sql_cfg.database)
+        stmt += ' AND TABLE_NAME = "its_session"'
+
+        self.__debug('Executing Statement:\n{}'.format(stmt))
+        cursor = self.__getCursor()
+        
+        cursor.execute(stmt)
+        row = cursor.fetchone()
+        cursor.close()
+
+        curId = 1
+        if row:
+            curId, = row
+            curId -= 1
+
+        self.__debug('Current session id = {}'.format(curId))
+        return curId
 
     def __getHistoryIdForRequest(self, itsRequestInfo):
         curId = 0
@@ -137,9 +152,11 @@ class ItsSqlConnection():
             curId
         )
 
-        self.__debug('Executing Statement:\n{}'.format(stmt))
-        self.its_cur.execute(stmt)
-        row = self.its_cur.fetchone()
+        self.__debugStatement(stmt)
+        cursor = self.__getCursor()
+        cursor.execute(stmt)
+        row = cursor.fetchone()
+        cursor.close()
         self.__debug('Fetched row:\n{}'.format(row))
 
         hisId = 1
@@ -149,24 +166,6 @@ class ItsSqlConnection():
         self.__debug('Current history ID: {}'.format(hisId))
         return hisId
 
-    def getEntryIdForSession(self):
-        # Nächste Id holen
-        stmt = 'SELECT AUTO_INCREMENT'
-        stmt += ' FROM information_schema.TABLES'
-        stmt += ' WHERE TABLE_SCHEMA = "its"'
-        stmt += ' AND TABLE_NAME = "its_session"'
-
-        self.__debug('Executing Statement:\n{}'.format(stmt))
-        self.its_cur.execute(stmt)
-        row = self.its_cur.fetchone()
-
-        curId = 1
-        if row:
-            curId, = row
-            curId -= 1
-
-        self.__debug('Current session id = {}'.format(curId))
-        return curId
 
     def insertSession(self, itsSessionInfo):
         self.__debug('Preparing SessionInfo for insert...')
@@ -182,9 +181,11 @@ class ItsSqlConnection():
             itsSessionInfo.enableImageGeneration,
             itsSessionInfo.cntGenerateImages
         )
-        self.__debug('Executing statement:\n{}'.format(stmt))
-        self.its_cur.execute(stmt)
+        self.__debugStatement(stmt)
+        cursor = self.__getCursor()
+        cursor.execute(stmt)
         self.db_con.commit()
+        cursor.close()
 
     def insertEpoch(self, itsEpochInfo):
         self.__debug('Preparing EpochInfo for insert...')
@@ -202,74 +203,107 @@ class ItsSqlConnection():
             itsEpochInfo.d_fake_ls,
             entry_id
         )
-        print(stmt)
-        self.__debug('Executing statement:\n{}'.format(stmt))
-        self.its_cur.execute(stmt)
+        self.__debugStatement(stmt)
+        cursor = self.__getCursor()
+        cursor.execute(stmt)
         self.db_con.commit()
+        cursor.close()
         return self.__getHisIdForEntry(itsEpochInfo)
 
     def insertRequest(self, itsRequestInfo, hisId):
 
         self.__debug('Preparing EpochInfo for insert...')
 
-        stmt = 'INSERT INTO its.its_request_history ('
+        stmt = 'INSERT INTO its_request_history ('
         stmt += 'session_id, epoch_nr, class, max_confidence,'
-        stmt += 'json_result, img_array, img_dtype, his_id)'
-        stmt += 'VALUES ({},{},"{}",{},"{}","{}","{}",{})'.format(
+        stmt += 'json_result, img_blob, his_id)'
+        stmt += 'VALUES ({},{},"{}",{},"{}",%s,{})'.format(
             itsRequestInfo.sessionNr,
             itsRequestInfo.epoch,
             itsRequestInfo.nn_class,
             itsRequestInfo.max_confidence,
             itsRequestInfo.json_result,
-            itsRequestInfo.img_array,
-            itsRequestInfo.img_dtype,
             hisId
         )
 
-        self.__debug('Executing statement:\n{}'.format(stmt))
-        self.its_cur.execute(stmt)
+        self.__debugStatement(stmt)
+        cursor = self.__getCursor()
+        cursor.execute(stmt, (itsRequestInfo.img_array.tobytes(),))
         self.db_con.commit()
+        cursor.close()
 
-    def getMaxConfIds(self):
+    def getBesIdsPerClasses(self):
 
-        # Alle vorhandenen Klassen finden
-        stmt = 'SELECT DISTINCT class FROM its_class_max'
-        self.its_cur.execute(stmt)
+        # Infos aus dem View holen
+        stmt = 'SELECT DISTINCT class FROM its_request_history WHERE class NOT IN ("-1", "dummy")'
+        self.__debugStatement(stmt)
+        cursor = self.__getCursor()
+        cursor.execute(stmt)
+
+        # Alle Klassen holen
         classList = []
-        for entry in self.its_cur:
-            # Tupel aus (class,)
+        for entry in cursor:
             classList.append(entry[0])
 
-        maxIds = []
-        # RequestID mit der höchsten Konfidenz ermitteln
+        # ID mit max Konfidenz für die Klasse suchen
+        maxIdList = []
         for c in classList:
-            stmt = 'SELECT id FROM its_class_max WHERE class = "{}" ORDER BY max_conf DESC LIMIT 1'.format(c)
-            self.__debug(stmt)
-            self.its_cur.execute(stmt)
-            maxIds.append(self.its_cur.fetchone()[0])
+            maxIdList.append(self.getMaxConfId(c))
 
-        return maxIds
+        cursor.close()
+        return maxIdList
 
-    def getImageFromRequestHistory(self, reqHistoryIds):
+    def getMaxConfId(self, clsName):
+        stmt = 'SELECT id FROM its_request_history WHERE class = "{}" ORDER BY max_confidence DESC LIMIT 1'.format(clsName)
 
-        # History ID Array in String umwandeln
-        ids = str(reqHistoryIds)
-        ids = ids.replace('[', '').replace(']', '')
+        self.__debugStatement(stmt)
+        cursor = self.__getCursor()
+        cursor.execute(stmt)
+        maxId = cursor.fetchone()[0]
+        cursor.close()
 
-        stmt = 'SELECT img_array FROM its_request_history WHERE id IN ({})'.format(
-            ids)
+        return maxId
 
-        self.__debug(stmt)
-        self.its_cur.execute(stmt)
-        images = []
-        for entry in self.its_cur:
-            img = entry[0].replace('[','').replace(']','')
-            img = np.fromstring(img, sep=' ')
-            images.append(img)
 
-        return images
+    def getImageFromRequestHistory(self, requestId):
+        stmt = 'SELECT img_blob FROM its_request_history WHERE id = {}'.format(requestId)
+
+        self.__debugStatement(stmt)
+        cursor = self.__getCursor()
+
+        cursor.execute(stmt)
+
+        imgBlob = cursor.fetchone()[0]
+        cursor.close()
+
+        return self.__convertToNumpy(imgBlob)
+
+    def __getCursor(self):
+        cursor = self.db_con.cursor()
+        cursor.execute('use {}'.format(self.sql_cfg.database))
+        return cursor
+
+    def __debugStatement(self, stmt):
+
+        msg = 'Executing statement:\n{}'.format(stmt)
+
+        if self.log:
+            self.log.info(msg)
+        else:
+            print(msg)
+
+    def __debug(self, msg):
+        if self.log:
+            self.log.debug(msg)
+        else:
+            print(msg)
+
+    def __convertToNumpy(self, imgBlob):
+        # Erst mal hardcoded, evtl. später anders
+        return np.frombuffer(imgBlob, dtype=np.uint8).reshape((64,64,3))
+
+        
 
 if __name__ == "__main__":
-    con = ItsSqlConnection(None)
-    con.debugConnection('127.0.0.1', 'its', '1212')
-    # con.createDefaultDatabase()158491'
+    con = ItsSqlConnection('./its.ini')
+    # con.createDefaultDatabase()

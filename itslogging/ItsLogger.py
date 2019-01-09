@@ -63,17 +63,6 @@ class ItsLogger(logging.LoggerAdapter):
             itsRequestInfo.max_confidence*100
         ))
 
-        # self.lgr.info('Session {}, Epoch {}:'.format(
-        #     itsRequestInfo.sessionNr,
-        #     itsRequestInfo.epoch
-        # ))
-        # Ausgelassen:
-        # self.lgr.debug('JSON result: \n {}'.format(
-        #     itsRequestInfo.json_result
-        # ))
-        # reqInfo.img_array
-        # reqInfo.img_dtype
-
     def debugEpochInfo(self, itsEpochInfo):
         self.lgr.debug(' Session {}, Epoch {}:'.rjust(24, ' ').format(
             itsEpochInfo.sessionNr,
