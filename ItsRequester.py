@@ -5,6 +5,7 @@ import time
 import imageio
 import requests
 import numpy as np
+from Queue import Queue
 from threading import Thread
 from itsdb import ItsSqlConnection
 from itslogging import ItsLogger, ItsSqlLogger
@@ -26,6 +27,8 @@ class ItsRequester:
         self.__initConfig()
         self.__initSqlLogger()
         self.__checkRequestDir()
+        self.queue = Queue(self.qSize)
+        self.threadList = []
         self.isReady = True
 
     def __initConfig(self):
@@ -36,6 +39,7 @@ class ItsRequester:
             self.key = self.cfg.req_cfg.key
             self.delay = self.cfg.req_cfg.delay
             self.reqDir = self.cfg.req_cfg.request_directory
+            self.qSize = self.cfg.req_cfg.qSize
         else:
             self.log.error('Invalid config.')
 
@@ -62,60 +66,57 @@ class ItsRequester:
             self.reqDir
         ))
 
-        self.classificationThread = Thread(
+        if isinstance(self.key, list):
+            for k in self.key:
+                self.__startThread(k)
+        else:
+            self.__startThread(self.key)
+
+    def __startThread(self, key):
+        t = Thread(
             target=self.__runClassification,
-            args=(self.reqDir,)
+            args=(key)
         )
+        t.start()
+        self.threadList.append(t)
 
-        self.classificationThread.start()
-
-    # TODO: Evtl. rausschmeisen?
-    def __isClassificationFinished(self, imgDir):
-        # Prüfen ob es noch Dateien gibt,
-        # die klassifiziert werden müssen.
-        done = True
-        m = re.compile(r'\.png')
-        for _, _, files in os.walk(imgDir):
-            if any(m.match(f) for f in files):
-                done = False
-
-        # Bilder vorhanden oder Requester beendet
-        finished = done and self.isReady
-
-        return finished
-
-    def __runClassification(self, imgDir):
+    def __runClassification(self, apiKey):
         if self.isReady:
-            self.log.info('Classification is ready.')
+            self.log.info('Classification Thread {} is ready.'.format(
+                len(self.threadList)))
+
+        while self.isReady:
+            if not self.queue.empty():
+                img = self.queue.get()
+                self.__sendImage(img, apiKey)
+                self.queue.task_done()
+            else:
+                self.log.info(
+                    'Queue is empty. Thread sleeping for {}s'.format(self.poll_delay))
 
         while self.isReady:
             self.log.info('Starting classification on folder \'{}\''
                           .format(imgDir))
-            imgs = self.__collectImagePaths(imgDir)
-            self.__sendGeneratedImages(imgs)
+            self.__sendGeneratedImages(imgs, apiKey)
             self.log.info('Classification waiting for {}'
                           .format(self.poll_delay))
             if self.debug:
                 self.log.info('To stop the classification enter \'y\'')
             time.sleep(self.poll_delay)
 
-    def __sendGeneratedImages(self, imgsPath):
-        for p in imgsPath:
-            if self.isReady:
-                with open(p, 'rb') as img:
-                    content = img.read()
+    def __sendImage(self, imgPath, apiKey):
+        with open(imgPath, 'rb') as img:
+            content = img.read()
 
-                res = self.sendRequest(content)
-                reqInfo = self.getRequestInfoForResult(res, p)
+        res = self.sendRequest(content, apiKey)
+        reqInfo = self.getRequestInfoForResult(res, imgPath)
 
-                reqInfo.sessionNr, reqInfo.epoch, hisId = self.__getSessionEpoch(p)
-                self.log.infoRequestInfo(reqInfo, p)
-                if self.sqlLog:
-                    self.sqlLog.logRequestInfo(reqInfo, hisId)
-                self.__markImageAsClassified(p)
-            else:
-                self.log.info('Classification stopped...')
-                break
+        reqInfo.sessionNr, reqInfo.epoch, hisId = self.__getSessionEpoch(
+            imgPath)
+        self.log.infoRequestInfo(reqInfo, imgPath)
+        if self.sqlLog:
+            self.sqlLog.logRequestInfo(reqInfo, hisId)
+        self.__markImageAsClassified(imgPath)
 
     def __markImageAsClassified(self, img):
         # Bilder werden aus dem Ordner gelöscht
@@ -148,15 +149,15 @@ class ItsRequester:
 
         return imgs
 
-    def sendRequest(self, img):
+    def sendRequest(self, img, apiKey):
         self.log.debug('Preparing request for Image...')
 
         myUrl = self.url
-        myData = {ItsConfig.PARAM_KEY: self.key}
+        myData = {ItsConfig.PARAM_KEY: apiKey}
 
         myFiles = {'image': img}
         # Kleines delay einbauen um 'too_many_requests' zu vermeiden
-        time.sleep(1)
+        time.sleep(self.delay)
         if self.debug:
             self.log.debug('Sending request...')
 

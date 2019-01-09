@@ -28,11 +28,13 @@ class ItsConfig():
     PARAM_KEY = 'key'
     PARAM_DELAY = 'delay'
     PARAM_REQ_DIR = 'directory'
+    PARAM_REQ_QUEUE_SIZE = 'queue-size'
 
     DEF_URL = 'http://www.example.com'
     DEF_KEY = 'apikey'
-    DEF_DELAY = 60
+    DEF_DELAY = 1
     DEF_REQ_DIR = 'its_request'
+    DEF_QUEUE_SIZE = 120
 
     def __init__(self, cfgPath):
         self.cfgPath = cfgPath
@@ -114,12 +116,15 @@ class ItsConfig():
         key = None
         delay = None
         reqDir = None
+        qSize = None
 
         if self.cfg.has_option(ItsConfig.PARAM_REQ, ItsConfig.PARAM_URL):
             url = self.cfg.get(ItsConfig.PARAM_REQ, ItsConfig.PARAM_URL)
 
         if self.cfg.has_option(ItsConfig.PARAM_REQ, ItsConfig.PARAM_KEY):
             key = self.cfg.get(ItsConfig.PARAM_REQ, ItsConfig.PARAM_KEY)
+            if ', ' in key:
+                key = key.split(', ')
 
         if self.cfg.has_option(ItsConfig.PARAM_REQ, ItsConfig.PARAM_DELAY):
             delay = self.cfg.getint(ItsConfig.PARAM_REQ, ItsConfig.PARAM_DELAY)
@@ -127,4 +132,7 @@ class ItsConfig():
         if self.cfg.has_option(ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_DIR):
             reqDir = self.cfg.get(ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_DIR)
 
-        self.req_cfg = ItsReqCfg(url, key, delay, reqDir)
+        if self.cfg.has_option(ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_QUEUE_SIZE):
+            qSize = self.cfg.get(ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_QUEUE_SIZE)
+
+        self.req_cfg = ItsReqCfg(url, key, delay, reqDir, qSize)
