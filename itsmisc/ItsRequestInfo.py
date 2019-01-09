@@ -9,7 +9,7 @@ class ItsRequestInfo():
         nn_class=-1,
         max_confidence=-1,
         json_result=-1,
-        img_blob=-1,
+        img_blob=-1
     ):
         self.sessionNr = sessionNr
         self.epoch = epoch
