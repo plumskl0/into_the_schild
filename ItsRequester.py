@@ -172,10 +172,8 @@ class ItsRequester:
         reqInfo.sessionNr = 0
         reqInfo.epoch = 0
         reqInfo.img_array = imageio.imread(imgPath)
-        reqInfo.img_dtype = reqInfo.img_array.dtype.name
         if self.debug:
             self.log.debug('Image Array:\t{}'.format(reqInfo.img_array.shape))
-            self.log.debug('Image dtype:\t{}'.format(reqInfo.img_dtype))
         return reqInfo
 
     def getBestClassFromResult(self, result):

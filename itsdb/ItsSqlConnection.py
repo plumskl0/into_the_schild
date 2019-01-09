@@ -46,7 +46,7 @@ class ItsSqlConnection():
                 self.dbExists = True
 
         if self.dbExists:
-            self.__debug('Database \'{}\'exists'.format(self.sql_cfg.database))
+            self.__debug('Database \'{}\' exists'.format(self.sql_cfg.database))
         else:        
             self.createDefaultDatabase()
 
@@ -228,7 +228,7 @@ class ItsSqlConnection():
 
         self.__debugStatement(stmt)
         cursor = self.__getCursor()
-        cursor.execute(stmt, (itsRequestInfo.img_blob,))
+        cursor.execute(stmt, (itsRequestInfo.img_array.tobytes(),))
         self.db_con.commit()
         cursor.close()
 
@@ -300,7 +300,7 @@ class ItsSqlConnection():
 
     def __convertToNumpy(self, imgBlob):
         # Erst mal hardcoded, evtl. später anders
-        return np.frombuffer(imgBlob, dtype=np.uint8)
+        return np.frombuffer(imgBlob, dtype=np.uint8).reshape((64,64,3))
 
         
 
