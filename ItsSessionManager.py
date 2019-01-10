@@ -56,6 +56,10 @@ class ItsSessionManager():
     def prepareRun(self):
         if not self.sqlLog:
             self.sqlLog = ItsSqlLogger(self.sql)
+
+        if self.dcgan:
+            del self.dcgan
+
         self.dcgan = ItsDcgan(self.sqlLog)
         self.dcgan.outputDir = self.outDir
         self.dcgan.initDcgan()
@@ -90,7 +94,7 @@ class ItsSessionManager():
         self.prepareRun()
         session = self.__createDefaultSession()
         session.sessionNr = 1
-        session.max_epoch = 60001
+        session.max_epoch = 25001
         session.info_text = 'Erster Durchlauf mit einzelnen Bildern aus dem Input Ordner. Das trainierte DCGAN wird dabei immer beibehalten.'
         session.enableImageGeneration = True
         session.stepsHistory = 100
@@ -118,7 +122,7 @@ class ItsSessionManager():
     def secondRun(self):
         session = self.__createDefaultSession()
         session.sessionNr = 2
-        session.max_epoch = 60001
+        session.max_epoch = 25001
         session.info_text = 'DEBUG Zweiter Durchlauf mit allen Basisbildern und das DCGAN vergisst, was es gelernt hat.'
         session.enableImageGeneration = True
         session.stepsHistory = 100
@@ -141,7 +145,6 @@ class ItsSessionManager():
                     session.cntGenerateImages
                 )
                 self.dcgan.start()
-                del self.dcgan
         else:
             self.log.error('No images in input dir \'{}\''.format(self.outDir))
 
@@ -150,7 +153,7 @@ class ItsSessionManager():
         self.prepareRun()
         session = self.__createDefaultSession()
         session.sessionNr = 3
-        session.max_epoch = 60001
+        session.max_epoch = 25001
         session.info_text = 'Dritter Durchlauf mit allen Basisbildern.'
         session.enableImageGeneration = True
         session.stepsHistory = 100
@@ -204,7 +207,7 @@ class ItsSessionManager():
 
 if __name__ == "__main__":
     s = ItsSessionManager()
-    s.debugRun()
-    # s.firstRun()
-    # s.secondRun()
-    # s.thirdRun()
+    # s.debugRun()
+    s.firstRun()
+    s.secondRun()
+    s.thirdRun()
