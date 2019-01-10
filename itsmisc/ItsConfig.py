@@ -133,6 +133,6 @@ class ItsConfig():
             reqDir = self.cfg.get(ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_DIR)
 
         if self.cfg.has_option(ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_QUEUE_SIZE):
-            qSize = self.cfg.get(ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_QUEUE_SIZE)
+            qSize = self.cfg.getint(ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_QUEUE_SIZE)
 
         self.req_cfg = ItsReqCfg(url, key, delay, reqDir, qSize)

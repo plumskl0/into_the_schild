@@ -27,7 +27,6 @@ class ItsSqlConnection():
 
     def __createConnection(self):
         self.__debug('Trying to connect to database...')
-        print(self.sql_cfg.host)
         self.db_con = mysql.connect(
             host=self.sql_cfg.host,
             user=self.sql_cfg.user,

@@ -204,7 +204,7 @@ class ItsSessionManager():
 
 if __name__ == "__main__":
     s = ItsSessionManager()
-    # s.debugRun()
-    s.firstRun()
-    s.secondRun()
-    s.thirdRun()
+    s.debugRun()
+    # s.firstRun()
+    # s.secondRun()
+    # s.thirdRun()

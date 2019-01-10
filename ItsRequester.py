@@ -2,10 +2,11 @@
 import os
 import re
 import time
+import random
 import imageio
 import requests
 import numpy as np
-from Queue import Queue
+from queue import Queue
 from threading import Thread
 from itsdb import ItsSqlConnection
 from itslogging import ItsLogger, ItsSqlLogger
@@ -27,7 +28,8 @@ class ItsRequester:
         self.__initConfig()
         self.__initSqlLogger()
         self.__checkRequestDir()
-        self.queue = Queue(self.qSize)
+        self.imgQueue = Queue(self.qSize)
+        self.reqQueue = Queue(self.qSize)
         self.threadList = []
         self.isReady = True
 
@@ -69,14 +71,17 @@ class ItsRequester:
         if isinstance(self.key, list):
             for k in self.key:
                 self.__startThread(k)
+                # Kleiner delay, da die Threads manchmal auf das selbe item zugreifen
+                time.sleep(1)
         else:
             self.__startThread(self.key)
 
     def __startThread(self, key):
         t = Thread(
             target=self.__runClassification,
-            args=(key)
+            args=(key,)
         )
+        t.daemon = True
         t.start()
         self.threadList.append(t)
 
@@ -86,37 +91,36 @@ class ItsRequester:
                 len(self.threadList)))
 
         while self.isReady:
-            if not self.queue.empty():
-                img = self.queue.get()
+            if not self.imgQueue.empty():
+                img = self.imgQueue.get()
                 self.__sendImage(img, apiKey)
-                self.queue.task_done()
+                self.imgQueue.task_done()
             else:
+                randWait = random.randrange(self.poll_delay)
                 self.log.info(
-                    'Queue is empty. Thread sleeping for {}s'.format(self.poll_delay))
-
-        while self.isReady:
-            self.log.info('Starting classification on folder \'{}\''
-                          .format(imgDir))
-            self.__sendGeneratedImages(imgs, apiKey)
-            self.log.info('Classification waiting for {}'
-                          .format(self.poll_delay))
-            if self.debug:
-                self.log.info('To stop the classification enter \'y\'')
-            time.sleep(self.poll_delay)
+                    'Queue is empty. Thread sleeping for {}s'.format(randWait))
+                time.sleep(randWait)
 
     def __sendImage(self, imgPath, apiKey):
-        with open(imgPath, 'rb') as img:
-            content = img.read()
+        if os.path.exists(imgPath):
+            try:
+                with open(imgPath, 'rb') as img:
+                    content = img.read()
 
-        res = self.sendRequest(content, apiKey)
-        reqInfo = self.getRequestInfoForResult(res, imgPath)
+                res = self.sendRequest(content, apiKey)
+                reqInfo = self.getRequestInfoForResult(res, imgPath)
 
-        reqInfo.sessionNr, reqInfo.epoch, hisId = self.__getSessionEpoch(
-            imgPath)
-        self.log.infoRequestInfo(reqInfo, imgPath)
-        if self.sqlLog:
-            self.sqlLog.logRequestInfo(reqInfo, hisId)
-        self.__markImageAsClassified(imgPath)
+                reqInfo.sessionNr, reqInfo.epoch, hisId = self.__getSessionEpoch(
+                    imgPath)
+                self.log.infoRequestInfo(reqInfo, imgPath)
+                if self.sqlLog:
+                    while self.reqQueue.full():
+                        self.log.info('Request queue is full waiting..')
+                        time.sleep(1)
+                    self.reqQueue.put((reqInfo, hisId))
+                self.__markImageAsClassified(imgPath)
+            except FileNotFoundError:
+                pass
 
     def __markImageAsClassified(self, img):
         # Bilder werden aus dem Ordner gelöscht
@@ -141,11 +145,6 @@ class ItsRequester:
 
     def __collectImagePaths(self, imgDir):
         imgs = []
-        # Alle nicht klassifizierten Bilder sammeln
-        for root, _, files in os.walk(imgDir):
-            for f in files:
-                if not '_c.png' in f:
-                    imgs.append(os.path.join(root, f))
 
         return imgs
 
@@ -184,8 +183,62 @@ class ItsRequester:
     def stop(self):
         self.log.info('Stopping requester...')
         self.isReady = False
-        self.classificationThread.join()
+
+        self.reqQueue.join()
+
+        for t in self.threadList:
+            time.sleep(1)
+            t.join()
+
         self.log.info('Requester stopped. Bye!')
+
+    def startRequestQueue(self):
+        t = Thread(target=self.__sendRequestQueue)
+        t.daemon = True
+        t.start()
+        self.threadList.append(t)
+
+    def __sendRequestQueue(self):
+        while self.isReady or not self.reqQueue.empty():
+            if not self.reqQueue.empty():
+                reqInfo, hisId = self.reqQueue.get()
+                self.sqlLog.logRequestInfo(reqInfo, hisId)
+                self.reqQueue.task_done()
+            else:
+                self.log.info('Requester queue is empty')
+                time.sleep(self.poll_delay)
+
+    def fillImageQueue(self):
+        t = Thread(target=self.__fillImageQueue)
+        t.start()
+        self.threadList.append(t)
+
+    def __fillImageQueue(self):
+        # Alle nicht klassifizierten Bilder sammeln
+        while self.isReady:
+            for root, _, files in os.walk(self.reqDir):
+                for f in files:
+                    img = os.path.join(root, f)
+                    inQ = (img in self.imgQueue.queue)
+                    fullQ = self.imgQueue.full()
+                    if not inQ and not fullQ:
+                        self.log.info('Adding {} to queue.'.format(img))
+                        self.imgQueue.put(img, )
+                    else:
+                        if not self.isReady:
+                            self.log.info('Classification stopped..')
+                        elif inQ:
+                            self.log.info(
+                                'File {} already in queue.'.format(f))
+                        elif fullQ:
+                            self.log.info('Queue is full.')
+                            break
+            size = self.imgQueue.qsize()
+            if size == 0:
+                size = self.poll_delay
+            randWait = random.randrange(size)
+            self.log.info('Next queue fill in {}'.format(randWait))
+            time.sleep(randWait)
 
 
 if __name__ == "__main__":
@@ -197,6 +250,8 @@ if __name__ == "__main__":
     cfg = ItsConfig(ItsConfig.CONFIG_PATH)
     requester = ItsRequester(cfg, debug=True)
     requester.startClassification()
+    requester.fillImageQueue()
+    requester.startRequestQueue()
 
     while requester.isReady:
         print('Requester is running...')
