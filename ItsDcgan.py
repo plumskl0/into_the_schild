@@ -123,6 +123,7 @@ class ItsDcgan():
         if self.tfSession:
             self.tfSession.close()
             del self.tfSession
+        tf.reset_default_graph()
         self.log.debug('Itsdcgan killed.')
         del self.log
 
