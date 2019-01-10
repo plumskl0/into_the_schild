@@ -192,19 +192,22 @@ class ItsSessionManager():
         imgs = self.getImages()
         session.cntBaseImages = len(imgs)
 
-        if len(imgs) > 0:
-            self.sql.insertSession(session)
-            self.dcgan.setSessionBaseImages(session.sessionNr, imgs)
-            self.dcgan.initEpoch(
-                session.max_epoch,
-                session.batch_size,
-                session.enableImageGeneration,
-                session.stepsHistory,
-                session.cntGenerateImages
-            )
-            self.dcgan.start()
-        else:
-            self.log.error('No images in input dir \'{}\''.format(self.outDir))
+        print(type(imgs))
+        print(imgs)
+
+        # if len(imgs) > 0:
+        #     self.sql.insertSession(session)
+        #     self.dcgan.setSessionBaseImages(session.sessionNr, imgs)
+        #     self.dcgan.initEpoch(
+        #         session.max_epoch,
+        #          session.batch_size,
+        #         session.enableImageGeneration,
+        #         session.stepsHistory,
+        #         session.cntGenerateImages
+        #     )
+        #     self.dcgan.start()
+        # else:
+        #     self.log.error('No images in input dir \'{}\''.format(self.outDir))
 
     def startAutoFind(self):
         session = self.__createDefaultSession()
@@ -217,15 +220,15 @@ class ItsSessionManager():
 
         # Dumper bauen
         imgDumper = ItsImageDumper()
+        # Hier kommt eine Liste mit Tupeln
         imgs = imgDumper.getAutoFindImages()
 
         session.cntBaseImages = len(imgs)
-
         if len(imgs) > 0:
             self.sql.insertSession(session)
             for img in imgs:
                 self.prepareRun()
-                self.dcgan.setSessionBaseImages(session.sessionNr, [img, img])
+                self.dcgan.setSessionBaseImages(session.sessionNr, [img[1], img[1]])
                 self.dcgan.initEpoch(
                     session.max_epoch,
                     session.batch_size,
@@ -242,6 +245,6 @@ if __name__ == "__main__":
     s = ItsSessionManager()
     s.debugRun()
     # s.firstRun()
-    s.secondRun()
+    # s.secondRun()
     # s.thirdRun()
     # s.startAutoFind()

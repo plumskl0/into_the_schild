@@ -140,6 +140,11 @@ class ItsDcgan():
     def setSessionBaseImages(self, sessionNr, imgs):
         self.sessionNr = sessionNr
         self.images = np.array(imgs)
+
+        # Konvertierung nicht vergessen!
+        self.images = self.images.astype(np.float32)
+        self.images = np.multiply(imgs, 1.0/255.0)
+        
         self.labels = np.ones(len(imgs))
         self.cntBaseImages = len(imgs)
 

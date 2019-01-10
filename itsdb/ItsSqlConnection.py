@@ -243,14 +243,9 @@ class ItsSqlConnection():
         classList = []
         for entry in cursor:
             classList.append(entry[0])
-
-        # ID mit max Konfidenz für die Klasse suchen
-        maxIdList = []
-        for c in classList:
-            maxIdList.append(self.getMaxConfId(c))
-
         cursor.close()
-        return maxIdList
+
+        return classList
 
     def getMaxConfId(self, clsName):
         stmt = 'SELECT id FROM its_request_history WHERE class = "{}" ORDER BY max_confidence DESC LIMIT 1'.format(clsName)
@@ -282,6 +277,7 @@ class ItsSqlConnection():
 
     def getAutoFindImages(self):
         clsNames = self.getDistinctClassNames()
+        print(clsNames)
         bestIds = []
         for c in clsNames:
             bestIds.append(self.getMaxConfId(c))
