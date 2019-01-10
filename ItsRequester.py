@@ -233,10 +233,10 @@ class ItsRequester:
                         elif fullQ:
                             self.log.info('Queue is full.')
                             break
-            size = self.imgQueue.qsize()
+            size = int(self.imgQueue.qsize()/2)
             if size == 0:
                 size = self.poll_delay
-            randWait = random.randrange(int(size/2))
+            randWait = random.randrange(size)
             self.log.info('Next queue fill in {}'.format(randWait))
             time.sleep(randWait)
 
