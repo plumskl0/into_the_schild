@@ -18,6 +18,7 @@ class ItsSessionManager():
         self.config = self.__createConfig()
         self.sql = self.__createConnection()
         self.sqlLog = None
+        self.dcgan = None
         self.__prepareFolders()
 
     def __createConfig(self):
