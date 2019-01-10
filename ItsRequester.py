@@ -236,7 +236,7 @@ class ItsRequester:
             size = self.imgQueue.qsize()
             if size == 0:
                 size = self.poll_delay
-            randWait = random.randrange(size)
+            randWait = random.randrange(size/2)
             self.log.info('Next queue fill in {}'.format(randWait))
             time.sleep(randWait)
 
