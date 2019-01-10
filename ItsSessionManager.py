@@ -129,7 +129,7 @@ class ItsSessionManager():
         session.info_text = 'DEBUG Zweiter Durchlauf mit allen Basisbildern und das DCGAN vergisst, was es gelernt hat.'
         session.enableImageGeneration = True
         session.stepsHistory = 1000
-        session.cntGenerateImages = 120
+        session.cntGenerateImages = 240
 
         imgs = self.getImages()
         session.cntBaseImages = len(imgs)
@@ -243,8 +243,8 @@ class ItsSessionManager():
 
 if __name__ == "__main__":
     s = ItsSessionManager()
-    s.debugRun()
+    # s.debugRun()
     # s.firstRun()
-    # s.secondRun()
+    s.secondRun()
     # s.thirdRun()
     # s.startAutoFind()
