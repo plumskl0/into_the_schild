@@ -329,27 +329,29 @@ class ItsDcgan():
                         self.is_training: True
                     })
 
-                if not i % self.stepsHistory:
+                if i > 0:
+                    if not i % self.stepsHistory:
 
-                    eLoss = self.getEpochInfo(
-                        i, d_ls, g_ls,
-                        d_real_ls, d_fake_ls
-                    )
+                        eLoss = self.getEpochInfo(
+                            i, d_ls, g_ls,
+                            d_real_ls, d_fake_ls
+                        )
 
-                    self.log.debugEpochInfo(eLoss)
-                    hisId = self.sqlLog.logEpochInfo(eLoss)
+                        self.log.debugEpochInfo(eLoss)
+                        hisId = self.sqlLog.logEpochInfo(eLoss)
 
-                    # Bilder generieren
-                    if self.enableImageGeneration:
-                        self.log.info('Epoch {}: Generating {} images'.format(
-                            i, self.cntGenerateImages))
-                        imgs = self.generateImages(self.cntGenerateImages)
-                        self.saveEpochImages(imgs, i, hisId)
-
-                if not i % self.debugOutputSteps:
-                    end = time.time() - start
-                    self.log.info(
-                        'Epoch {} completed in {:2.3f}s.'.format(i, end))
+                        # Bilder generieren
+                        if self.enableImageGeneration:
+                            self.log.info('Epoch {}: Generating {} images'.format(
+                                i, self.cntGenerateImages))
+                            imgs = self.generateImages(self.cntGenerateImages)
+                            self.saveEpochImages(imgs, i, hisId)
+                
+                if i > 0:
+                    if not i % self.debugOutputSteps:
+                        end = time.time() - start
+                        self.log.info(
+                            'Epoch {} completed in {:2.3f}s.'.format(i, end))
 
             self.log.info('Run {} completed.'.format(i))
         else:

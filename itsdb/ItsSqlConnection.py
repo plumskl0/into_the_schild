@@ -231,7 +231,7 @@ class ItsSqlConnection():
         self.db_con.commit()
         cursor.close()
 
-    def getBesIdsPerClasses(self):
+    def getDistinctClassNames(self):
 
         # Infos aus dem View holen
         stmt = 'SELECT DISTINCT class FROM its_request_history WHERE class NOT IN ("-1", "dummy")'
@@ -265,17 +265,33 @@ class ItsSqlConnection():
 
 
     def getImageFromRequestHistory(self, requestId):
-        stmt = 'SELECT img_blob FROM its_request_history WHERE id = {}'.format(requestId)
+        stmt = 'SELECT class, img_blob FROM its_request_history WHERE id = {}'.format(requestId)
 
         self.__debugStatement(stmt)
         cursor = self.__getCursor()
 
         cursor.execute(stmt)
 
-        imgBlob = cursor.fetchone()[0]
+        row = cursor.fetchone()
+
+        clsName = row[0]
+        imgBlob = row[1]
         cursor.close()
 
-        return self.__convertToNumpy(imgBlob)
+        return (clsName, self.__convertToNumpy(imgBlob))
+
+    def getAutoFindImages(self):
+        clsNames = self.getDistinctClassNames()
+        bestIds = []
+        for c in clsNames:
+            bestIds.append(self.getMaxConfId(c))
+
+        # Tupel aus (Klasse, NumpyArray)
+        imgs = []
+        for i in bestIds:
+            imgs.append(self.getImageFromRequestHistory(i))
+
+        return imgs
 
     def __getCursor(self):
         cursor = self.db_con.cursor()

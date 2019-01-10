@@ -4,6 +4,7 @@ import os
 import configparser as cfgp
 from itsmisc.itscfg.ItsMysqlConfig import ItsMysqlConfig as ItsSqlCfg
 from itsmisc.itscfg.ItsRequesterConfig import ItsRequesterConfig as ItsReqCfg
+from itsmisc.itscfg.ItsImageDumperConfig import ItsImageDumperConfig as ItsImgDumpCfg
 
 
 class ItsConfig():
@@ -36,6 +37,12 @@ class ItsConfig():
     DEF_REQ_DIR = 'its_request'
     DEF_QUEUE_SIZE = 120
 
+    # ImageDumper config defaults
+    PARAM_IMGD = 'ImageDumper'
+    PARAM_IMGD_DIR = 'directory'
+
+    DEF_IMGD_DIR = 'its_dump'
+
     def __init__(self, cfgPath):
         self.cfgPath = cfgPath
         self.__getConfig()
@@ -54,6 +61,7 @@ class ItsConfig():
 
         self.__getRequesterConfig()
         self.__getMySqlConfig()
+        self.__getImageDumperConfig()
 
     def __writeConfig(self):
         with open(self.cfgPath, 'w') as cfgFile:
@@ -74,6 +82,11 @@ class ItsConfig():
             ItsConfig.PARAM_KEY: ItsConfig.DEF_KEY,
             ItsConfig.PARAM_DELAY: ItsConfig.DEF_DELAY,
             ItsConfig.PARAM_REQ_DIR: ItsConfig.DEF_REQ_DIR
+        }
+
+        # ImageDumper Part
+        self.cfg[ItsConfig.PARAM_IMGD] = {
+            ItsConfig.PARAM_IMGD_DIR: ItsConfig.DEF_IMGD_DIR
         }
 
     def isValid(self):
@@ -136,3 +149,11 @@ class ItsConfig():
             qSize = self.cfg.getint(ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_QUEUE_SIZE)
 
         self.req_cfg = ItsReqCfg(url, key, delay, reqDir, qSize)
+
+    def __getImageDumperConfig(self):
+        outDir = None
+
+        if self.cfg.has_option(ItsConfig.PARAM_IMGD, ItsConfig.PARAM_IMGD_DIR):
+            outDir = self.cfg.get(ItsConfig.PARAM_IMGD, ItsConfig.PARAM_IMGD_DIR)
+        
+        self.imgd_cfg = ItsImgDumpCfg(outDir)

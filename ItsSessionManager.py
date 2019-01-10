@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 
 import os
+import gc
 import time
 import imageio
 import numpy as np
 from ItsDcgan import ItsDcgan
-from ItsRequester import ItsRequester
+from itsdb import ItsSqlConnection
 from itsmisc import ItsSessionInfo, ItsConfig
 from itslogging import ItsLogger, ItsSqlLogger
-from itsdb import ItsSqlConnection
+from ItsRequester import ItsRequester
+from ItsImageDumper import ItsImageDumper
 
 
 class ItsSessionManager():
@@ -60,7 +62,7 @@ class ItsSessionManager():
 
         if self.dcgan:
             del self.dcgan
-
+        gc.collect()
         self.dcgan = ItsDcgan(self.sqlLog)
         self.dcgan.outputDir = self.outDir
         self.dcgan.initDcgan()
@@ -123,11 +125,11 @@ class ItsSessionManager():
     def secondRun(self):
         session = self.__createDefaultSession()
         session.sessionNr = 2
-        session.max_epoch = 25001
+        session.max_epoch = 60001
         session.info_text = 'DEBUG Zweiter Durchlauf mit allen Basisbildern und das DCGAN vergisst, was es gelernt hat.'
         session.enableImageGeneration = True
-        session.stepsHistory = 100
-        session.cntGenerateImages = 60
+        session.stepsHistory = 1000
+        session.cntGenerateImages = 120
 
         imgs = self.getImages()
         session.cntBaseImages = len(imgs)
@@ -148,7 +150,6 @@ class ItsSessionManager():
                 self.dcgan.start()
         else:
             self.log.error('No images in input dir \'{}\''.format(self.outDir))
-
 
     def thirdRun(self):
         self.prepareRun()
@@ -205,10 +206,42 @@ class ItsSessionManager():
         else:
             self.log.error('No images in input dir \'{}\''.format(self.outDir))
 
+    def startAutoFind(self):
+        session = self.__createDefaultSession()
+        session.sessionNr = 4
+        session.max_epoch = 10
+        session.info_text = 'Autofind'
+        session.enableImageGeneration = True
+        session.stepsHistory = 2
+        session.cntGenerateImages = 10
+
+        # Dumper bauen
+        imgDumper = ItsImageDumper()
+        imgs = imgDumper.getAutoFindImages()
+
+        session.cntBaseImages = len(imgs)
+
+        if len(imgs) > 0:
+            self.sql.insertSession(session)
+            for img in imgs:
+                self.prepareRun()
+                self.dcgan.setSessionBaseImages(session.sessionNr, [img, img])
+                self.dcgan.initEpoch(
+                    session.max_epoch,
+                    session.batch_size,
+                    session.enableImageGeneration,
+                    session.stepsHistory,
+                    session.cntGenerateImages
+                )
+                self.dcgan.start()
+        else:
+            self.log.error('No AutoFind images.')
+
 
 if __name__ == "__main__":
     s = ItsSessionManager()
-    # s.debugRun()
-    s.firstRun()
+    s.debugRun()
+    # s.firstRun()
     s.secondRun()
-    s.thirdRun()
+    # s.thirdRun()
+    # s.startAutoFind()
