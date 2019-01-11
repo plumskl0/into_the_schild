@@ -35,7 +35,8 @@ class ItsSqlConnection():
         self.__debug('Connected to database.')
 
     def __checkDatabase(self):
-        self.__debug('Checking if database \'{}\' exists...'.format(self.sql_cfg.database))
+        self.__debug('Checking if database \'{}\' exists...'.format(
+            self.sql_cfg.database))
         c = self.db_con.cursor()
         c.execute('SHOW DATABASES')
 
@@ -45,12 +46,14 @@ class ItsSqlConnection():
                 self.dbExists = True
 
         if self.dbExists:
-            self.__debug('Database \'{}\' exists'.format(self.sql_cfg.database))
-        else:        
+            self.__debug('Database \'{}\' exists'.format(
+                self.sql_cfg.database))
+        else:
             self.createDefaultDatabase()
 
     def createDefaultDatabase(self,):
-        self.__debug('Database does not exist. Creating database \'{}\''.format(self.sql_cfg.database))
+        self.__debug('Database does not exist. Creating database \'{}\''.format(
+            self.sql_cfg.database))
         cursor = self.db_con.cursor()
         cursor.execute('CREATE DATABASE {}'.format(self.sql_cfg.database))
         self.db_con.commit()
@@ -58,7 +61,6 @@ class ItsSqlConnection():
         self.executeFile(ItsSqlConnection.DEFAULT_DATABASE_FILE)
         self.dbExists = True
 
-   
     def executeFile(self, filePath):
         self.__debug('Executing {}'.format(filePath))
         statements = []
@@ -124,7 +126,7 @@ class ItsSqlConnection():
 
         self.__debug('Executing Statement:\n{}'.format(stmt))
         cursor = self.__getCursor()
-        
+
         cursor.execute(stmt)
         row = cursor.fetchone()
         cursor.close()
@@ -164,7 +166,6 @@ class ItsSqlConnection():
 
         self.__debug('Current history ID: {}'.format(hisId))
         return hisId
-
 
     def insertSession(self, itsSessionInfo):
         self.__debug('Preparing SessionInfo for insert...')
@@ -247,20 +248,28 @@ class ItsSqlConnection():
 
         return classList
 
-    def getMaxConfId(self, clsName):
-        stmt = 'SELECT id FROM its_request_history WHERE class = "{}" ORDER BY max_confidence DESC LIMIT 1'.format(clsName)
+    def getMaxConfId(self, clsName, n=1):
+        stmt = 'SELECT id FROM its_request_history WHERE class = "{}" ORDER BY max_confidence DESC LIMIT {}'.format(
+            clsName, n)
 
         self.__debugStatement(stmt)
         cursor = self.__getCursor()
         cursor.execute(stmt)
-        maxId = cursor.fetchone()[0]
+
+        maxIds = []
+        for entry in cursor:
+            maxIds.append(entry[0])
+
         cursor.close()
 
-        return maxId
-
+        if n == 1:
+            return maxIds[0]
+        else:
+            return maxIds
 
     def getImageFromRequestHistory(self, requestId):
-        stmt = 'SELECT class, img_blob FROM its_request_history WHERE id = {}'.format(requestId)
+        stmt = 'SELECT class, img_blob, max_confidence FROM its_request_history WHERE id = {}'.format(
+            requestId)
 
         self.__debugStatement(stmt)
         cursor = self.__getCursor()
@@ -271,9 +280,10 @@ class ItsSqlConnection():
 
         clsName = row[0]
         imgBlob = row[1]
+        maxConf = row[2]
         cursor.close()
 
-        return (clsName, self.__convertToNumpy(imgBlob))
+        return (clsName, self.__convertToNumpy(imgBlob), maxConf)
 
     def getAutoFindImages(self):
         clsNames = self.getDistinctClassNames()
@@ -282,7 +292,7 @@ class ItsSqlConnection():
         for c in clsNames:
             bestIds.append(self.getMaxConfId(c))
 
-        # Tupel aus (Klasse, NumpyArray)
+        # Tupel aus (Klasse, NumpyArray, Konfidenz)
         imgs = []
         for i in bestIds:
             imgs.append(self.getImageFromRequestHistory(i))
@@ -311,9 +321,8 @@ class ItsSqlConnection():
 
     def __convertToNumpy(self, imgBlob):
         # Erst mal hardcoded, evtl. später anders
-        return np.frombuffer(imgBlob, dtype=np.uint8).reshape((64,64,3))
+        return np.frombuffer(imgBlob, dtype=np.uint8).reshape((64, 64, 3))
 
-        
 
 if __name__ == "__main__":
     con = ItsSqlConnection('./its.ini')
