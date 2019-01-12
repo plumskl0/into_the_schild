@@ -192,22 +192,19 @@ class ItsSessionManager():
         imgs = self.getImages()
         session.cntBaseImages = len(imgs)
 
-        print(type(imgs))
-        print(imgs)
-
-        # if len(imgs) > 0:
-        #     self.sql.insertSession(session)
-        #     self.dcgan.setSessionBaseImages(session.sessionNr, imgs)
-        #     self.dcgan.initEpoch(
-        #         session.max_epoch,
-        #          session.batch_size,
-        #         session.enableImageGeneration,
-        #         session.stepsHistory,
-        #         session.cntGenerateImages
-        #     )
-        #     self.dcgan.start()
-        # else:
-        #     self.log.error('No images in input dir \'{}\''.format(self.outDir))
+        if len(imgs) > 0:
+            self.sql.insertSession(session)
+            self.dcgan.setSessionBaseImages(session.sessionNr, imgs)
+            self.dcgan.initEpoch(
+                session.max_epoch,
+                 session.batch_size,
+                session.enableImageGeneration,
+                session.stepsHistory,
+                session.cntGenerateImages
+            )
+            self.dcgan.start()
+        else:
+            self.log.error('No images in input dir \'{}\''.format(self.outDir))
 
     def startAutoFind(self):
         session = self.__createDefaultSession()
@@ -243,8 +240,8 @@ class ItsSessionManager():
 
 if __name__ == "__main__":
     s = ItsSessionManager()
-    # s.debugRun()
+    s.debugRun()
     # s.firstRun()
-    s.secondRun()
+    # s.secondRun()
     # s.thirdRun()
     # s.startAutoFind()
