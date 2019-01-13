@@ -3,5 +3,6 @@
 
 class ItsImageDumperConfig():
 
-    def __init__(self, outDir):
+    def __init__(self, outDir, topImgCnt):
         self.outDir = outDir
+        self.topImgCnt = topImgCnt

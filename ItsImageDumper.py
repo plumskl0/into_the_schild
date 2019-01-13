@@ -14,12 +14,15 @@ class ItsImageDumper():
         self.log = ItsLogger(self.logName)
         self.config = self.__createConfig()
         self.sql_con = self.__createConnection()
+        self.outDir = self.config.imgd_cfg.outDir
+        self.imgCnt = self.config.imgd_cfg.topImgCnt
         self.__prepareFolders()
 
     def __createConfig(self):
         cfg = ItsConfig(ItsConfig.CONFIG_PATH)
         if cfg.isValid():
             self.log.info('Config is valid.')
+            
         else:
             self.log.error('Config invalid. Please check the config file.')
         return cfg
@@ -39,7 +42,7 @@ class ItsImageDumper():
             self.log.error('Invalid config. Please check the config.')
 
     def __prepareFolders(self):
-        self.outDir = self.config.imgd_cfg.outDir
+        
         if not os.path.exists(self.outDir):
             self.log.info('Creating Directory: \'{}\''.format(self.outDir))
             os.makedirs(self.outDir)
@@ -53,24 +56,21 @@ class ItsImageDumper():
         self.log.info('Found {} distinct classes.'.format(len(clsNames)))
         bestIds = []
         for c in clsNames:
-            bestIds.append(self.sql_con.getMaxConfId(c, 10))
-        self.log.info('Found {} IDs.'.format(len(bestIds)))
+            bestIds.append(self.sql_con.getMaxConfId(c, self.imgCnt))
+        self.log.info('Found {} classes.'.format(len(clsNames)))
 
-        imgTuples = []
         cnt = 0
         for i in bestIds:
             img = None
             if isinstance(i, list):
                 for tid in i:
                     img = self.sql_con.getImageFromRequestHistory(tid)
-                    # imgTuples.append(img)
                     self.__saveImage(img)
+                    cnt += 1
             else:
                 img = self.sql_con.getImageFromRequestHistory(i)
-                # imgTuples.append(img)
                 self.__saveImage(img)
-
-            cnt += 1
+                cnt += 1
 
         self.log.info('Fetched {} images from DB.'.format(cnt))
 

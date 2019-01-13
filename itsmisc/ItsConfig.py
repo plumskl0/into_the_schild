@@ -18,29 +18,31 @@ class ItsConfig():
     PARAM_PASS = 'pass'
     PARAM_DATABASE = 'database'
 
-    DEF_HOST = 'hostip'
-    DEF_USER = 'user'
-    DEF_PASS = 'pass'
+    DEF_HOST = '127.0.0.1'
+    DEF_USER = 'its'
+    DEF_PASS = '1212'
     DEF_DATABASE = 'its'
 
     # Requester config defaults
     PARAM_REQ = 'Requester'
     PARAM_URL = 'url'
     PARAM_KEY = 'key'
-    PARAM_DELAY = 'delay'
+    PARAM_DELAY = 'send_delay'
     PARAM_REQ_DIR = 'directory'
-    PARAM_REQ_QUEUE_SIZE = 'queue-size'
+    PARAM_REQ_QUEUE_SIZE = 'queue_size'
 
-    DEF_URL = 'http://www.example.com'
-    DEF_KEY = 'apikey'
+    DEF_URL = 'https://phinau.de/trasi'
+    DEF_KEY = 'seix2Iel8ohGh7noshai3aingefah9qu, vaetha1mu2zo8yahr3Ietui9fohfiequ'
     DEF_DELAY = 1
     DEF_REQ_DIR = 'its_request'
     DEF_QUEUE_SIZE = 120
 
     # ImageDumper config defaults
     PARAM_IMGD = 'ImageDumper'
+    PARAM_IMGD_CNT = 'top_img_cnt'
     PARAM_IMGD_DIR = 'directory'
 
+    DEF_IMGD_CNT = '10'
     DEF_IMGD_DIR = 'its_dump'
 
     def __init__(self, cfgPath):
@@ -87,16 +89,13 @@ class ItsConfig():
 
         # ImageDumper Part
         self.cfg[ItsConfig.PARAM_IMGD] = {
+            ItsConfig.PARAM_IMGD_CNT: ItsConfig.DEF_IMGD_CNT,
             ItsConfig.PARAM_IMGD_DIR: ItsConfig.DEF_IMGD_DIR
         }
 
     def isValid(self):
         # Defaults prüfen
-        return not(self.sql_cfg.host == ItsConfig.DEF_HOST or
-                   self.sql_cfg.user == ItsConfig.DEF_USER or
-                   self.sql_cfg.passw == ItsConfig.DEF_PASS or
-                   self.req_cfg.url == ItsConfig.DEF_URL or
-                   self.req_cfg.url == ItsConfig.DEF_KEY)
+        return True
 
     def isRequestValid(self):
         # Defaults prüfen ohne SQL für DebugSession
@@ -154,7 +153,11 @@ class ItsConfig():
     def __getImageDumperConfig(self):
         outDir = None
 
+        if self.cfg.has_option(ItsConfig.PARAM_IMGD, ItsConfig.PARAM_IMGD_CNT):
+            topImgCnt = self.cfg.get(ItsConfig.PARAM_IMGD, ItsConfig.PARAM_IMGD_CNT)
+
         if self.cfg.has_option(ItsConfig.PARAM_IMGD, ItsConfig.PARAM_IMGD_DIR):
             outDir = self.cfg.get(ItsConfig.PARAM_IMGD, ItsConfig.PARAM_IMGD_DIR)
+
         
-        self.imgd_cfg = ItsImgDumpCfg(outDir)
+        self.imgd_cfg = ItsImgDumpCfg(outDir, topImgCnt)

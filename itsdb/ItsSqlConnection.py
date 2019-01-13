@@ -316,7 +316,3 @@ class ItsSqlConnection():
         # Erst mal hardcoded, evtl. später anders
         return np.frombuffer(imgBlob, dtype=np.uint8).reshape((64, 64, 3))
 
-
-if __name__ == "__main__":
-    con = ItsSqlConnection('./its.ini')
-    # con.createDefaultDatabase()

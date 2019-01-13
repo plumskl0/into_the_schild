@@ -59,7 +59,7 @@ class ItsSessionManager():
 
     def prepareRun(self):
         if not self.sqlLog:
-            self.sqlLog = ItsSqlLogger(self.sql, self.logName)
+            self.sqlLog = ItsSqlLogger(self.sql, self.log)
 
         if self.dcgan:
             del self.dcgan
@@ -188,7 +188,7 @@ class ItsSessionManager():
         session.info_text = 'DEBUG'
         session.enableImageGeneration = True
         session.stepsHistory = 2
-        session.cntGenerateImages = 2
+        session.cntGenerateImages = 120
 
         imgs = self.getImages()
         session.cntBaseImages = len(imgs)
