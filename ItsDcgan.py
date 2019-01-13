@@ -14,7 +14,7 @@ class ItsDcgan():
 
     def __init__(self, itsSqlLog=None):
         # TODO: Debugmodus abschalten
-        self.log = ItsLogger(logName='its_dcgan', debug=True)
+        self.log = ItsLogger(logName='its_dcgan')
         self.sqlLog = itsSqlLog
         self.isDcganReady = False
         self.isEpochReady = False

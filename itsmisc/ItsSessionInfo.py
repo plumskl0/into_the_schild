@@ -23,7 +23,7 @@ class ItsSessionInfo():
         stepsHistory = -1,
         cntGenerateImages = -1,
         batch_size = -1,
-        debug=True
+        debug=False
     ):
         self.sessionNr = sessionNr
         self.max_epoch = max_epoch

@@ -7,19 +7,15 @@ import logging
 
 class ItsLogger(logging.LoggerAdapter):
 
-    def __init__(self, logName='its_log', level=logging.INFO, debug=True):
+    def __init__(self, logName='its_log', level=logging.DEBUG):
 
         logFormat = logging.Formatter(
             '%(asctime)s | %(levelname)s | %(message)s')
 
         self.handler = None
-        if debug:
-            # Beim Debugging alles im Terminal ausgeben
-            level = logging.DEBUG
-            self.handler = logging.StreamHandler()
-        else:
-            # Ohne Debugging INFO Level in Datei schreiben
-            self.handler = logging.FileHandler(logName+'.log')
+
+        # Ohne Debugging INFO Level in Datei schreiben
+        self.handler = logging.FileHandler(logName+'.log')
 
         self.handler.setFormatter(logFormat)
 

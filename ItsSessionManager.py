@@ -16,7 +16,8 @@ from ItsImageDumper import ItsImageDumper
 class ItsSessionManager():
 
     def __init__(self):
-        self.log = ItsLogger('its_session_manager')
+        self.logName = 'its_session_manager'
+        self.log = ItsLogger(self.logName)
         self.config = self.__createConfig()
         self.sql = self.__createConnection()
         self.sqlLog = None
@@ -58,7 +59,7 @@ class ItsSessionManager():
 
     def prepareRun(self):
         if not self.sqlLog:
-            self.sqlLog = ItsSqlLogger(self.sql)
+            self.sqlLog = ItsSqlLogger(self.sql, self.logName)
 
         if self.dcgan:
             del self.dcgan
@@ -77,7 +78,7 @@ class ItsSessionManager():
         session.stepsHistory = 5
         session.cntGenerateImages = 2
         session.batch_size = 2
-        session.debug = True
+        session.debug = False
         return session
 
     def getImages(self):
@@ -183,11 +184,11 @@ class ItsSessionManager():
         self.prepareRun()
         session = self.__createDefaultSession()
         session.sessionNr = 0
-        session.max_epoch = 10
+        session.max_epoch = 5
         session.info_text = 'DEBUG'
         session.enableImageGeneration = True
         session.stepsHistory = 2
-        session.cntGenerateImages = 10
+        session.cntGenerateImages = 2
 
         imgs = self.getImages()
         session.cntBaseImages = len(imgs)

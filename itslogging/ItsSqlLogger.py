@@ -5,31 +5,25 @@ from itslogging.ItsLogger import ItsLogger
 
 class ItsSqlLogger(ItsLogger):
 
-    def __init__(self, db_con):
-        super().__init__(logName='its_sql', debug=True)
+    def __init__(self, db_con, logName='its_sql'):
+        super().__init__(logName=logName)
         
         self.db_con = db_con
 
     def logSessionInfo(self, itsSessionInfo):
-
-        if itsSessionInfo.debug:
-            self.debugSessionInfo(itsSessionInfo)
+        self.debugSessionInfo(itsSessionInfo)
 
         self.db_con.insertSession(itsSessionInfo)
 
     def logEpochInfo(self, itsEpochInfo):
         self.debug('Logging EpochInfo...')
-
-        if self.debug:
-            self.debugEpochInfo(itsEpochInfo)
+        self.debugEpochInfo(itsEpochInfo)
 
         return self.db_con.insertEpoch(itsEpochInfo)
 
     def logRequestInfo(self, itsRequestInfo, hisId):
         self.debug('Logging RequestInfo...')
-
-        if self.debug:
-            self.infoRequestInfo(itsRequestInfo, hisId)
+        self.infoRequestInfo(itsRequestInfo, hisId)
         
         self.db_con.insertRequest(itsRequestInfo, hisId)
 

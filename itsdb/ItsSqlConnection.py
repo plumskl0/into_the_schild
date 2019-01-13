@@ -81,8 +81,6 @@ class ItsSqlConnection():
     def __executeStatements(self, statements):
         if not self.dbExists:
             for s in statements:
-                print('yoo')
-                print(s)
                 cursor = self.db_con.cursor()
                 cursor.execute('USE {}'.format(self.sql_cfg.database))
                 self.__debug('Executing Statement:\n{}'.format(s))
@@ -287,7 +285,6 @@ class ItsSqlConnection():
 
     def getAutoFindImages(self):
         clsNames = self.getDistinctClassNames()
-        print(clsNames)
         bestIds = []
         for c in clsNames:
             bestIds.append(self.getMaxConfId(c))
@@ -310,14 +307,10 @@ class ItsSqlConnection():
 
         if self.log:
             self.log.info(msg)
-        else:
-            print(msg)
 
     def __debug(self, msg):
         if self.log:
             self.log.debug(msg)
-        else:
-            print(msg)
 
     def __convertToNumpy(self, imgBlob):
         # Erst mal hardcoded, evtl. später anders

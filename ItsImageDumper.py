@@ -6,10 +6,12 @@ from itsmisc import ItsConfig
 from itslogging import ItsLogger, ItsSqlLogger
 from itsdb import ItsSqlConnection
 
+
 class ItsImageDumper():
 
     def __init__(self):
-        self.log = ItsLogger('its_image_dumper')
+        self.logName = 'its_image_dumper'
+        self.log = ItsLogger(self.logName)
         self.config = self.__createConfig()
         self.sql_con = self.__createConnection()
         self.__prepareFolders()
@@ -25,7 +27,7 @@ class ItsImageDumper():
     def __createConnection(self):
         if self.config.isValid():
             self.log.info('Creating SQL connection...')
-            sql = ItsSqlConnection(self.config.sql_cfg, log=self.log)
+            sql = ItsSqlConnection(self.config.sql_cfg, self.log)
 
             if sql.dbExists:
                 self.log.info('SQL Connection successful.')
@@ -55,20 +57,22 @@ class ItsImageDumper():
         self.log.info('Found {} IDs.'.format(len(bestIds)))
 
         imgTuples = []
+        cnt = 0
         for i in bestIds:
             img = None
             if isinstance(i, list):
                 for tid in i:
                     img = self.sql_con.getImageFromRequestHistory(tid)
-                    #imgTuples.append(img)
+                    # imgTuples.append(img)
                     self.__saveImage(img)
             else:
                 img = self.sql_con.getImageFromRequestHistory(i)
-                #imgTuples.append(img)
+                # imgTuples.append(img)
                 self.__saveImage(img)
 
-        self.log.info('Fetched {} images from DB.'.format(len(imgTuples)))
+            cnt += 1
 
+        self.log.info('Fetched {} images from DB.'.format(cnt))
 
     def __saveImage(self, imgTuple):
         clsName, img, maxConf = imgTuple
@@ -92,6 +96,7 @@ class ItsImageDumper():
                     cnt += 1
 
         return cnt
+
 
 if __name__ == "__main__":
     dump = ItsImageDumper()

@@ -16,9 +16,9 @@ from itsmisc import ItsRequestInfo, ItsConfig
 class ItsRequester:
 
     def __init__(self, config, debug=False):
+        self.logName = 'its_requester'
         self.log = ItsLogger(
-            logName='its_requester',
-            debug=debug
+            logName=self.logName
         )
 
         self.debug = debug
@@ -59,7 +59,7 @@ class ItsRequester:
         if sql.dbExists:
             self.log.info('SQL connection successful.')
             self.log.info('Preparing SQL log...')
-            self.sqlLog = ItsSqlLogger(sql)
+            self.sqlLog = ItsSqlLogger(sql, self.logName)
         else:
             self.log.error('SQL connection failed.')
 
@@ -248,7 +248,7 @@ if __name__ == "__main__":
     # Die Namen der Bilder müssen die Infos (SessionNr, Epoche etc.) beinhalten
     # Beispiel: 'session_epoch_.png'
     cfg = ItsConfig(ItsConfig.CONFIG_PATH)
-    requester = ItsRequester(cfg, debug=True)
+    requester = ItsRequester(cfg)
     requester.startClassification()
     requester.fillImageQueue()
     requester.startRequestQueue()
