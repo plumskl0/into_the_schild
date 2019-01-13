@@ -81,7 +81,8 @@ class ItsConfig():
             ItsConfig.PARAM_URL: ItsConfig.DEF_URL,
             ItsConfig.PARAM_KEY: ItsConfig.DEF_KEY,
             ItsConfig.PARAM_DELAY: ItsConfig.DEF_DELAY,
-            ItsConfig.PARAM_REQ_DIR: ItsConfig.DEF_REQ_DIR
+            ItsConfig.PARAM_REQ_DIR: ItsConfig.DEF_REQ_DIR,
+            ItsConfig.PARAM_REQ_QUEUE_SIZE: ItsConfig.DEF_QUEUE_SIZE
         }
 
         # ImageDumper Part
