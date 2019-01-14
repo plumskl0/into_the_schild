@@ -17,7 +17,7 @@ class ItsRequester:
 
     def __init__(self, config, debug=False):
         self.logName = 'its_requester'
-        self.log = ItsLogger(self.logName)
+        self.log = ItsLogger(self.logName, outDir=ItsConfig.VOLUME_FOLDER)
 
         self.debug = debug
         self.cfg = config
@@ -34,24 +34,20 @@ class ItsRequester:
         self.stop = False
 
     def __initConfig(self):
-        if self.cfg.isRequestValid():
-            self.log.info('Config valid. Preparing Requester.')
-            self.log.info('To stop the requester enter \'y\'')
-            self.url = self.cfg.req_cfg.url
-            self.key = self.cfg.req_cfg.key
-            self.delay = self.cfg.req_cfg.delay
-            self.reqDir = self.cfg.req_cfg.request_directory
-            self.qSize = self.cfg.req_cfg.qSize
-        else:
-            self.log.error('Invalid config.')
+        self.log.info('Config valid. Preparing Requester.')
+        self.log.info('To stop the requester enter \'y\'')
+        self.url = self.cfg.req_cfg.url
+        self.key = self.cfg.req_cfg.key
+        self.delay = self.cfg.req_cfg.delay
+        self.reqDir = self.cfg.req_cfg.request_directory
+        self.qSize = self.cfg.req_cfg.qSize
 
     def __checkRequestDir(self):
-        if self.cfg.isRequestValid():
-            if not os.path.exists(self.reqDir):
-                self.log.debug('Request directory does not exist.')
-                self.log.info(
-                    'Creating requester directory \'{}\''.format(self.reqDir))
-                os.makedirs(self.reqDir)
+        if not os.path.exists(self.reqDir):
+            self.log.debug('Request directory does not exist.')
+            self.log.info(
+                'Creating requester directory \'{}\''.format(self.reqDir))
+            os.makedirs(self.reqDir)
 
     def __initSqlLogger(self):
         self.log.info('Creating SQL connection...')
@@ -248,7 +244,7 @@ class ItsRequester:
 
 
 if __name__ == "__main__":
-    req = ItsRequester(ItsConfig(ItsConfig.CONFIG_PATH))
+    req = ItsRequester(ItsConfig())
     req.startRequesting()
     while input() not in 'y':
         req.stopRequesting()

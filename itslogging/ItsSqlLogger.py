@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from itslogging.ItsLogger import ItsLogger
-
 
 class ItsSqlLogger():
 

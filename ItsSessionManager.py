@@ -16,35 +16,27 @@ from ItsImageDumper import ItsImageDumper
 class ItsSessionManager():
 
     def __init__(self):
-        self.logName = 'its_session_manager'
-        self.log = ItsLogger(self.logName)
         self.config = self.__createConfig()
+        self.logName = 'its_session_manager'
+        self.log = ItsLogger(self.logName, outDir=ItsConfig.VOLUME_FOLDER)
         self.sql = self.__createConnection()
         self.sqlLog = None
         self.dcgan = None
         self.__prepareFolders()
 
     def __createConfig(self):
-        cfg = ItsConfig(ItsConfig.CONFIG_PATH)
-        if cfg.isValid():
-            self.log.info('Config is valid.')
-        else:
-            self.log.error('Config invalid. Please check the config file.')
-        return cfg
+        return ItsConfig()
 
     def __createConnection(self):
-        if self.config.isValid():
-            self.log.info('Creating SQL connection...')
-            sql = ItsSqlConnection(self.config.sql_cfg, log=self.log)
+        self.log.info('Creating SQL connection...')
+        sql = ItsSqlConnection(self.config.sql_cfg, log=self.log)
 
-            if sql.dbExists:
-                self.log.info('SQL Connection successful.')
-                return sql
-            else:
-                self.log.error('No SQL connection.')
-                return None
+        if sql.dbExists:
+            self.log.info('SQL Connection successful.')
+            return sql
         else:
-            self.log.error('Invalid config. Please check the config.')
+            self.log.error('No SQL connection.')
+            return None
 
     def __prepareFolders(self):
         self.outDir = self.config.req_cfg.request_directory
@@ -52,7 +44,7 @@ class ItsSessionManager():
             self.log.info('Creating Directory: \'{}\''.format(self.outDir))
             os.makedirs(self.outDir)
 
-        self.inDir = 'its_input'
+        self.inDir = self.config.misc.inputDir
         if not os.path.exists(self.inDir):
             self.log.info('Creating Directory: \'{}\''.format(self.inDir))
             os.makedirs(self.inDir)

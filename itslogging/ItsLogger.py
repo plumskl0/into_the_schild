@@ -7,15 +7,18 @@ import logging
 
 class ItsLogger(logging.LoggerAdapter):
 
-    def __init__(self, logName='its_log', level=logging.DEBUG):
+    def __init__(self, logName='its_log', level=logging.DEBUG, outDir=None):
 
         logFormat = logging.Formatter(
             '%(asctime)s | %(levelname)s | %(message)s')
 
-        self.handler = None
+        if outDir:
+            logFile = outDir + '/' + logName + '.log' 
+        else:
+            logFile = logName + '.log'
 
         # Ohne Debugging INFO Level in Datei schreiben
-        self.handler = logging.FileHandler(logName+'.log')
+        self.handler = logging.FileHandler(logFile)
 
         self.handler.setFormatter(logFormat)
 

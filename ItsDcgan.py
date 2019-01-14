@@ -7,14 +7,14 @@ import logging
 import numpy as np
 import tensorflow as tf
 from itslogging import ItsLogger, ItsSqlLogger
-from itsmisc import ItsEpochInfo, ItsSessionInfo
+from itsmisc import ItsEpochInfo, ItsSessionInfo, ItsConfig
 
 
 class ItsDcgan():
 
     def __init__(self, itsSqlLog=None):
         # TODO: Debugmodus abschalten
-        self.log = ItsLogger(logName='its_dcgan')
+        self.log = ItsLogger(logName='its_dcgan', outDir=ItsConfig.VOLUME_FOLDER)
         self.sqlLog = itsSqlLog
         self.isDcganReady = False
         self.isEpochReady = False

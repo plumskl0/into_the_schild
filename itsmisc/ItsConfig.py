@@ -2,12 +2,15 @@
 
 import os
 import configparser as cfgp
+from itsmisc.itscfg.ItsMiscConfig import ItsMiscConfig  as ItsMiscCfg
 from itsmisc.itscfg.ItsMysqlConfig import ItsMysqlConfig as ItsSqlCfg
 from itsmisc.itscfg.ItsRequesterConfig import ItsRequesterConfig as ItsReqCfg
 from itsmisc.itscfg.ItsImageDumperConfig import ItsImageDumperConfig as ItsImgDumpCfg
 
 
 class ItsConfig():
+
+    VOLUME_FOLDER = 'volume'
 
     CONFIG_PATH = 'its.ini'
 
@@ -45,9 +48,30 @@ class ItsConfig():
     DEF_IMGD_CNT = '10'
     DEF_IMGD_DIR = 'its_dump'
 
-    def __init__(self, cfgPath):
-        self.cfgPath = cfgPath
+    # Misc
+    PARAM_MISC = 'Misc'
+    PARAM_MISC_INP_DIR = 'dcgan_input_dir'
+
+    DEF_MISC_INP_DIR = 'its_input'
+
+
+    def __init__(self, cfgPath=None):
+        self.prepareVolumePaths()
+        if cfgPath:
+            self.cfgPath = cfgPath
+        else:
+            self.cfgPath = ItsConfig.CONFIG_PATH
         self.__getConfig()
+
+    def prepareVolumePaths(self):
+        if ItsConfig.VOLUME_FOLDER:
+            if not os.path.exists(ItsConfig.VOLUME_FOLDER):
+                # Volume Ordner erzeugen
+                os.makedirs(ItsConfig.VOLUME_FOLDER)
+            ItsConfig.CONFIG_PATH = os.path.join(ItsConfig.VOLUME_FOLDER, ItsConfig.CONFIG_PATH)
+            ItsConfig.DEF_REQ_DIR = os.path.join(ItsConfig.VOLUME_FOLDER, ItsConfig.DEF_REQ_DIR)
+            ItsConfig.DEF_IMGD_DIR = os.path.join(ItsConfig.VOLUME_FOLDER, ItsConfig.DEF_IMGD_DIR)
+            ItsConfig.DEF_MISC_INP_DIR = os.path.join(ItsConfig.VOLUME_FOLDER, ItsConfig.DEF_MISC_INP_DIR)
 
     def __getConfig(self):
         self.cfg = cfgp.ConfigParser()
@@ -64,6 +88,7 @@ class ItsConfig():
         self.__getRequesterConfig()
         self.__getMySqlConfig()
         self.__getImageDumperConfig()
+        self.__getMiscConfig()
 
     def __writeConfig(self):
         with open(self.cfgPath, 'w') as cfgFile:
@@ -93,14 +118,10 @@ class ItsConfig():
             ItsConfig.PARAM_IMGD_DIR: ItsConfig.DEF_IMGD_DIR
         }
 
-    def isValid(self):
-        # Defaults prüfen
-        return True
-
-    def isRequestValid(self):
-        # Defaults prüfen ohne SQL für DebugSession
-        return not(self.req_cfg.url == ItsConfig.DEF_URL or
-                   self.req_cfg.url == ItsConfig.DEF_KEY)
+        # Misc Part
+        self.cfg[ItsConfig.PARAM_MISC] = {
+            ItsConfig.PARAM_MISC_INP_DIR: ItsConfig.DEF_MISC_INP_DIR
+        }
 
     def __getMySqlConfig(self):
         # Mysql part
@@ -160,4 +181,12 @@ class ItsConfig():
             outDir = self.cfg.get(ItsConfig.PARAM_IMGD, ItsConfig.PARAM_IMGD_DIR)
 
         
-        self.imgd_cfg = ItsImgDumpCfg(outDir, topImgCnt)
+        self.imgd_cfg = ItsImgDumpCfg(topImgCnt, outDir)
+
+    def __getMiscConfig(self):
+        inpDir = None
+
+        if self.cfg.has_option(ItsConfig.PARAM_MISC, ItsConfig.PARAM_MISC_INP_DIR):
+            inpDir = self.cfg.get(ItsConfig.PARAM_MISC, ItsConfig.PARAM_MISC_INP_DIR)
+
+        self.misc = ItsMiscCfg(inpDir)

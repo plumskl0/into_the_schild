@@ -11,7 +11,7 @@ class ItsImageDumper():
 
     def __init__(self):
         self.logName = 'its_image_dumper'
-        self.log = ItsLogger(self.logName)
+        self.log = ItsLogger(self.logName, outDir=ItsConfig.VOLUME_FOLDER)
         self.config = self.__createConfig()
         self.sql_con = self.__createConnection()
         self.outDir = self.config.imgd_cfg.outDir
@@ -19,30 +19,20 @@ class ItsImageDumper():
         self.__prepareFolders()
 
     def __createConfig(self):
-        cfg = ItsConfig(ItsConfig.CONFIG_PATH)
-        if cfg.isValid():
-            self.log.info('Config is valid.')
-            
-        else:
-            self.log.error('Config invalid. Please check the config file.')
-        return cfg
+        return ItsConfig()
 
     def __createConnection(self):
-        if self.config.isValid():
-            self.log.info('Creating SQL connection...')
-            sql = ItsSqlConnection(self.config.sql_cfg, self.log)
+        self.log.info('Creating SQL connection...')
+        sql = ItsSqlConnection(self.config.sql_cfg, self.log)
 
-            if sql.dbExists:
-                self.log.info('SQL Connection successful.')
-                return sql
-            else:
-                self.log.error('No SQL connection.')
-                return None
+        if sql.dbExists:
+            self.log.info('SQL Connection successful.')
+            return sql
         else:
-            self.log.error('Invalid config. Please check the config.')
+            self.log.error('No SQL connection.')
+            return None
 
     def __prepareFolders(self):
-        
         if not os.path.exists(self.outDir):
             self.log.info('Creating Directory: \'{}\''.format(self.outDir))
             os.makedirs(self.outDir)
