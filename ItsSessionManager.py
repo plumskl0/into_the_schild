@@ -5,6 +5,7 @@ import gc
 import time
 import imageio
 import numpy as np
+import argparse
 from ItsDcgan import ItsDcgan
 from itsdb import ItsSqlConnection
 from itsmisc import ItsSessionInfo, ItsConfig
@@ -23,6 +24,9 @@ class ItsSessionManager():
         self.sqlLog = None
         self.dcgan = None
         self.__prepareFolders()
+        self.itsRequester = ItsRequester()
+        self.itsImgDumper = ItsImageDumper()
+        self.waitTime = 5
 
     def __createConfig(self):
         return ItsConfig()
@@ -93,8 +97,8 @@ class ItsSessionManager():
         session.max_epoch = 25001
         session.info_text = 'Erster Durchlauf mit einzelnen Bildern aus dem Input Ordner. Das trainierte DCGAN wird dabei immer beibehalten.'
         session.enableImageGeneration = True
-        session.stepsHistory = 100
-        session.cntGenerateImages = 60
+        session.stepsHistory = 1000
+        session.cntGenerateImages = 120
 
         imgs = self.getImages()
         session.cntBaseImages = len(imgs)
@@ -118,11 +122,11 @@ class ItsSessionManager():
     def secondRun(self):
         session = self.__createDefaultSession()
         session.sessionNr = 2
-        session.max_epoch = 60001
+        session.max_epoch = 25001
         session.info_text = 'DEBUG Zweiter Durchlauf mit allen Basisbildern und das DCGAN vergisst, was es gelernt hat.'
         session.enableImageGeneration = True
         session.stepsHistory = 1000
-        session.cntGenerateImages = 240
+        session.cntGenerateImages = 120
 
         imgs = self.getImages()
         session.cntBaseImages = len(imgs)
@@ -152,7 +156,7 @@ class ItsSessionManager():
         session.info_text = 'Dritter Durchlauf mit allen Basisbildern.'
         session.enableImageGeneration = True
         session.stepsHistory = 100
-        session.cntGenerateImages = 60
+        session.cntGenerateImages = 120
 
         imgs = self.getImages()
         session.cntBaseImages = len(imgs)
@@ -190,7 +194,7 @@ class ItsSessionManager():
             self.dcgan.setSessionBaseImages(session.sessionNr, imgs)
             self.dcgan.initEpoch(
                 session.max_epoch,
-                 session.batch_size,
+                session.batch_size,
                 session.enableImageGeneration,
                 session.stepsHistory,
                 session.cntGenerateImages
@@ -202,23 +206,22 @@ class ItsSessionManager():
     def startAutoFind(self):
         session = self.__createDefaultSession()
         session.sessionNr = 4
-        session.max_epoch = 10
+        session.max_epoch = 25001
         session.info_text = 'Autofind'
         session.enableImageGeneration = True
-        session.stepsHistory = 2
-        session.cntGenerateImages = 10
+        session.stepsHistory = 1000
+        session.cntGenerateImages = 120
 
-        # Dumper bauen
-        imgDumper = ItsImageDumper()
         # Hier kommt eine Liste mit Tupeln
-        imgs = imgDumper.getAutoFindImages()
+        imgs = self.itsImgDumper.getAutoFindImages()
 
         session.cntBaseImages = len(imgs)
         if len(imgs) > 0:
             self.sql.insertSession(session)
             for img in imgs:
                 self.prepareRun()
-                self.dcgan.setSessionBaseImages(session.sessionNr, [img[1], img[1]])
+                self.dcgan.setSessionBaseImages(
+                    session.sessionNr, [img[1], img[1]])
                 self.dcgan.initEpoch(
                     session.max_epoch,
                     session.batch_size,
@@ -232,9 +235,27 @@ class ItsSessionManager():
 
 
 if __name__ == "__main__":
-    s = ItsSessionManager()
-    s.debugRun()
-    # s.firstRun()
-    # s.secondRun()
-    # s.thirdRun()
-    # s.startAutoFind()
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--first', help='Start first run')
+    parser.add_argument('--second', help='Start second run')
+    parser.add_argument('--third', help='Start third run')
+    parser.add_argument('--auto', help='Start auto run')
+    parser.add_argument('-d', '--debug', help='Debug run')
+
+    args = parser.parse_args()
+
+    if args.first:
+        s = ItsSessionManager()
+        s.firstRun()
+    elif args.second:
+        s = ItsSessionManager()
+        s.secondRun()
+    elif args.third:
+        s = ItsSessionManager()
+        s.thirdRun()
+    elif args.auto:
+        s = ItsSessionManager()
+        s.debugRun()
+    else:
+        print('No argument set. Please call ItsSessionManager with option \'-h\'.')

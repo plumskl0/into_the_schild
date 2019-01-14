@@ -15,12 +15,12 @@ from itsmisc import ItsRequestInfo, ItsConfig
 
 class ItsRequester:
 
-    def __init__(self, config, debug=False):
+    def __init__(self, debug=False):
         self.logName = 'its_requester'
         self.log = ItsLogger(self.logName, outDir=ItsConfig.VOLUME_FOLDER)
 
         self.debug = debug
-        self.cfg = config
+        self.cfg = ItsConfig()
         self.sqlLog = None
         self.hardDelay = 5
         self.__initConfig()
@@ -242,9 +242,12 @@ class ItsRequester:
 
         return random.randrange(size)
 
+    def isRequestingFinished(self):
+        _,_,files = next(os.walk())
+        return any(f)
 
 if __name__ == "__main__":
-    req = ItsRequester(ItsConfig())
+    req = ItsRequester()
     req.startRequesting()
-    while input() not in 'y':
+    while input('To stop the requester enter \'y\'') not in 'y':
         req.stopRequesting()
