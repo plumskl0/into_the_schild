@@ -41,7 +41,7 @@ Im folgenden werden die vom ITS Programm genutzten Dateien und Ordner beschriebe
   - its_requester.log
     - Logging output der Requester Komponente.
   - its_image_dumper.log
-    - - Logging output der Requester Komponente.
+  -  Logging output der Requester Komponente.
 
 ## Konfiguration - its.ini
 
@@ -61,7 +61,7 @@ Die Abgabe besteht aus zwei Docker Images: its_untrained und its_trained. Beide 
 
 Die untrainierte Variante ist für einen Testlauf gedacht, um zu sehen wie sich die Bilder entwickeln. Die trainierte Varinate dient zum betrachten der bereits gefunden Bilder.
 
-Beide Dockerimages besitzten einen symbolischen Link */outvol*. Dieser verweist auf den Ordnern, der vom ITS Programm für in- und output Zwecke genutzt wird und beinhaltet folgende Dateien und Ordner:
+Beide Dockerimages besitzten einen symbolischen Link */outvol*. Dieser verweist auf den Ordnern, der vom ITS Programm für in- und output Zwecke genutzt wird und beinhaltet die im Kaptiel *ITS Dateien und Ordner* beschriebene Struktur.
 
 
 ### Empfohlene Nutzung its_untrained
@@ -84,3 +84,24 @@ Beispiel Aufrufe:
 - docker run -v outvol:/outvol its_untrained ./its_second.sh
 - docker run -v outvol:/outvol its_untrained ./its_third.sh
 
+Zur Beobachtung des aktuellen Laufs, empfehlen wir drei Ansätze:
+
+1. Betrachtung der Logging-Dateien
+    - Am einfachsten ist es die Logging-Dateien mit dem Kommando *tail -f* aufzurufen. Dies kommt einem Konsolen Output sehr nah.
+2. Betrachung des Request-Ordners
+    - Wenn ein Run gestartet wird, werden Bilder im its_request Ordner generiert. Dies kann je nach System ein paar Minuten dauern, da die Bilder jede tausendste Epochen generiert werden.
+    - Bilder, die an das Klassifikationsnetz gesendet wurden, werden aus dem Ordner gelöscht und in der ITS Datenbank abgespeichert
+3. Betrachtung des Dump-Ordners
+    - Sobald der Requester alle erzeugten Bilder in der Datenbank abgespeichert hat, startet der ImageDumper. Dieser speichert die besten Bilder im *its_dump* Ordner. Dies kann jedoch einige Stunden dauern.
+    - Grobe zeitliche Orientierung ist: *pro input Bild etwa eine Stunde*
+
+### Empfohlene Nutzung its_trained
+
+Das *its_trained* Image kann prinzipiell genau so genutzt werden wie *its_untrained*. Es wird jedoch empfohlen hier nur das *its_img_dump.sh* Script auszuführen und in der Konfirgurationsdatei einen möglichst hohen *top_img_cnt* einzustellen. Im *its_trained* Image sind rund 230.000 Bilder mit einer Konfidenz von über 90% vorhanden.
+
+Auf dem *its_trained* Image kann zwar das *its_auto.sh* Script ausgeführt werden, jedoch könnte dies (je nach System) mehrere Tage dauern.
+
+Beispiel Aufrufe:
+
+- docker run -v outvol:/outvol its_trained ./its_img_dump.sh
+- docker run -v outvol:/outvol its_trained ./its_auto.sh
