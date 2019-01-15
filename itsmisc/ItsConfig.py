@@ -113,20 +113,15 @@ class ItsConfig():
             ItsConfig.PARAM_URL: ItsConfig.DEF_URL,
             ItsConfig.PARAM_KEY: ItsConfig.DEF_KEY,
             ItsConfig.PARAM_DELAY: ItsConfig.DEF_DELAY,
-            ItsConfig.PARAM_REQ_DIR: ItsConfig.DEF_REQ_DIR,
             ItsConfig.PARAM_REQ_QUEUE_SIZE: ItsConfig.DEF_QUEUE_SIZE
         }
 
         # ImageDumper Part
         self.cfg[ItsConfig.PARAM_IMGD] = {
             ItsConfig.PARAM_IMGD_CNT: ItsConfig.DEF_IMGD_CNT,
-            ItsConfig.PARAM_IMGD_DIR: ItsConfig.DEF_IMGD_DIR
         }
 
-        # Misc Part
-        self.cfg[ItsConfig.PARAM_MISC] = {
-            ItsConfig.PARAM_MISC_INP_DIR: ItsConfig.DEF_MISC_INP_DIR
-        }
+       
 
     def __getMySqlConfig(self):
         # Mysql part
@@ -154,7 +149,6 @@ class ItsConfig():
         url = None
         key = None
         delay = None
-        reqDir = None
         qSize = None
 
         if self.cfg.has_option(ItsConfig.PARAM_REQ, ItsConfig.PARAM_URL):
@@ -168,8 +162,7 @@ class ItsConfig():
         if self.cfg.has_option(ItsConfig.PARAM_REQ, ItsConfig.PARAM_DELAY):
             delay = self.cfg.getint(ItsConfig.PARAM_REQ, ItsConfig.PARAM_DELAY)
 
-        if self.cfg.has_option(ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_DIR):
-            reqDir = self.cfg.get(ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_DIR)
+        reqDir = ItsConfig.DEF_REQ_DIR
 
         if self.cfg.has_option(ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_QUEUE_SIZE):
             qSize = self.cfg.getint(
@@ -184,17 +177,11 @@ class ItsConfig():
             topImgCnt = self.cfg.get(
                 ItsConfig.PARAM_IMGD, ItsConfig.PARAM_IMGD_CNT)
 
-        if self.cfg.has_option(ItsConfig.PARAM_IMGD, ItsConfig.PARAM_IMGD_DIR):
-            outDir = self.cfg.get(ItsConfig.PARAM_IMGD,
-                                  ItsConfig.PARAM_IMGD_DIR)
+        outDir = ItsConfig.DEF_IMGD_DIR
 
         self.imgd_cfg = ItsImgDumpCfg(topImgCnt, outDir)
 
     def __getMiscConfig(self):
-        inpDir = None
 
-        if self.cfg.has_option(ItsConfig.PARAM_MISC, ItsConfig.PARAM_MISC_INP_DIR):
-            inpDir = self.cfg.get(ItsConfig.PARAM_MISC,
-                                  ItsConfig.PARAM_MISC_INP_DIR)
-
+        inpDir = ItsConfig.DEF_MISC_INP_DIR
         self.misc = ItsMiscCfg(inpDir)
