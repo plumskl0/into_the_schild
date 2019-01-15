@@ -80,9 +80,9 @@ Zum starten des ITS Programms können vier verschiedene Scripte aufgerufen werde
 
 Beispiel Aufrufe:
 
-- docker run -v outvol:/outvol its_untrained ./its_first.sh
-- docker run -v outvol:/outvol its_untrained ./its_second.sh
-- docker run -v outvol:/outvol its_untrained ./its_third.sh
+- docker run -v outvol:/outvol -t its_untrained ./its_first.sh
+- docker run -v outvol:/outvol -t its_untrained ./its_second.sh
+- docker run -v outvol:/outvol -t its_untrained ./its_third.sh
 
 Zur Beobachtung des aktuellen Laufs, empfehlen wir drei Ansätze:
 
@@ -103,5 +103,5 @@ Auf dem *its_trained* Image kann zwar das *its_auto.sh* Script ausgeführt werde
 
 Beispiel Aufrufe:
 
-- docker run -v outvol:/outvol its_trained ./its_img_dump.sh
-- docker run -v outvol:/outvol its_trained ./its_auto.sh
+- docker run -v outvol:/outvol -t its_trained ./its_img_dump.sh
+- docker run -v outvol:/outvol -t its_trained ./its_auto.sh
