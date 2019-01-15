@@ -77,6 +77,14 @@ class ItsSessionManager():
         session.debug = False
         return session
 
+    def __finishSession(self):
+        while not self.itsRequester.isRequestingFinished():
+            self.log.info('Requester not finished...')
+            time.sleep(self.waitTime)
+
+        self.itsRequester.stopRequesting()
+        self.itsImgDumper.dumpBestImages()
+
     def getImages(self):
         imgs = []
         # Alle nicht klassifizierten Bilder sammeln
@@ -104,6 +112,7 @@ class ItsSessionManager():
         session.cntBaseImages = len(imgs)
 
         if len(imgs) > 0:
+            self.itsRequester.startRequesting()
             self.sql.insertSession(session)
 
             for img in imgs:
@@ -116,8 +125,11 @@ class ItsSessionManager():
                     session.cntGenerateImages
                 )
                 self.dcgan.start()
+
+            self.__finishSession()
+
         else:
-            self.log.error('No images in input dir \'{}\''.format(self.outDir))
+            self.log.error('No images in input dir \'{}\''.format(self.inDir))
 
     def secondRun(self):
         session = self.__createDefaultSession()
@@ -132,6 +144,7 @@ class ItsSessionManager():
         session.cntBaseImages = len(imgs)
 
         if len(imgs) > 0:
+            self.itsRequester.startRequesting()
             self.sql.insertSession(session)
 
             for img in imgs:
@@ -145,8 +158,10 @@ class ItsSessionManager():
                     session.cntGenerateImages
                 )
                 self.dcgan.start()
+
+            self.__finishSession()
         else:
-            self.log.error('No images in input dir \'{}\''.format(self.outDir))
+            self.log.error('No images in input dir \'{}\''.format(self.inDir))
 
     def thirdRun(self):
         self.prepareRun()
@@ -155,13 +170,14 @@ class ItsSessionManager():
         session.max_epoch = 25001
         session.info_text = 'Dritter Durchlauf mit allen Basisbildern.'
         session.enableImageGeneration = True
-        session.stepsHistory = 100
+        session.stepsHistory = 1000
         session.cntGenerateImages = 120
 
         imgs = self.getImages()
         session.cntBaseImages = len(imgs)
 
         if len(imgs) > 0:
+            self.itsRequester.startRequesting()
             self.sql.insertSession(session)
 
             self.dcgan.setSessionBaseImages(session.sessionNr, imgs)
@@ -173,35 +189,10 @@ class ItsSessionManager():
                 session.cntGenerateImages
             )
             self.dcgan.start()
+
+            self.__finishSession()
         else:
-            self.log.error('No images in input dir \'{}\''.format(self.outDir))
-
-    def debugRun(self):
-        self.prepareRun()
-        session = self.__createDefaultSession()
-        session.sessionNr = 0
-        session.max_epoch = 5
-        session.info_text = 'DEBUG'
-        session.enableImageGeneration = True
-        session.stepsHistory = 2
-        session.cntGenerateImages = 120
-
-        imgs = self.getImages()
-        session.cntBaseImages = len(imgs)
-
-        if len(imgs) > 0:
-            self.sql.insertSession(session)
-            self.dcgan.setSessionBaseImages(session.sessionNr, imgs)
-            self.dcgan.initEpoch(
-                session.max_epoch,
-                session.batch_size,
-                session.enableImageGeneration,
-                session.stepsHistory,
-                session.cntGenerateImages
-            )
-            self.dcgan.start()
-        else:
-            self.log.error('No images in input dir \'{}\''.format(self.outDir))
+            self.log.error('No images in input dir \'{}\''.format(self.inDir))
 
     def startAutoFind(self):
         session = self.__createDefaultSession()
@@ -217,6 +208,7 @@ class ItsSessionManager():
 
         session.cntBaseImages = len(imgs)
         if len(imgs) > 0:
+            self.itsRequester.startRequesting()
             self.sql.insertSession(session)
             for img in imgs:
                 self.prepareRun()
@@ -230,32 +222,63 @@ class ItsSessionManager():
                     session.cntGenerateImages
                 )
                 self.dcgan.start()
+
+            self.__finishSession()
+
         else:
             self.log.error('No AutoFind images.')
+
+    def debugRun(self):
+        self.prepareRun()
+        session = self.__createDefaultSession()
+        session.sessionNr = 0
+        session.max_epoch = 5
+        session.info_text = 'DEBUG'
+        session.enableImageGeneration = True
+        session.stepsHistory = 2
+        session.cntGenerateImages = 10
+
+        imgs = self.getImages()
+        session.cntBaseImages = len(imgs)
+
+        if len(imgs) > 0:
+            self.itsRequester.startRequesting()
+            self.sql.insertSession(session)
+            self.dcgan.setSessionBaseImages(session.sessionNr, imgs)
+            self.dcgan.initEpoch(
+                session.max_epoch,
+                session.batch_size,
+                session.enableImageGeneration,
+                session.stepsHistory,
+                session.cntGenerateImages
+            )
+            self.dcgan.start()
+
+            self.__finishSession()
+
+        else:
+            self.log.error('No images in input dir \'{}\''.format(self.inDir))
 
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--first', help='Start first run')
-    parser.add_argument('--second', help='Start second run')
-    parser.add_argument('--third', help='Start third run')
-    parser.add_argument('--auto', help='Start auto run')
-    parser.add_argument('-d', '--debug', help='Debug run')
-
+    parser.add_argument(
+        'run', help='Which run should be started. Possible runs are: \'first\', \'second\', \'third\', \'auto\', \'debug\'')
     args = parser.parse_args()
 
-    if args.first:
+    if args.run in 'first':
         s = ItsSessionManager()
         s.firstRun()
-    elif args.second:
+    elif args.run in 'second':
         s = ItsSessionManager()
         s.secondRun()
-    elif args.third:
+    elif args.run in 'third':
         s = ItsSessionManager()
         s.thirdRun()
-    elif args.auto:
+    elif args.run in 'auto':
+        s = ItsSessionManager()
+        s.startAutoFind()
+    elif args.run in 'debug':
         s = ItsSessionManager()
         s.debugRun()
-    else:
-        print('No argument set. Please call ItsSessionManager with option \'-h\'.')

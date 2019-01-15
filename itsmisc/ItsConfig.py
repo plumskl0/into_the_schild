@@ -2,7 +2,7 @@
 
 import os
 import configparser as cfgp
-from itsmisc.itscfg.ItsMiscConfig import ItsMiscConfig  as ItsMiscCfg
+from itsmisc.itscfg.ItsMiscConfig import ItsMiscConfig as ItsMiscCfg
 from itsmisc.itscfg.ItsMysqlConfig import ItsMysqlConfig as ItsSqlCfg
 from itsmisc.itscfg.ItsRequesterConfig import ItsRequesterConfig as ItsReqCfg
 from itsmisc.itscfg.ItsImageDumperConfig import ItsImageDumperConfig as ItsImgDumpCfg
@@ -54,7 +54,6 @@ class ItsConfig():
 
     DEF_MISC_INP_DIR = 'its_input'
 
-
     def __init__(self, cfgPath=None):
         self.prepareVolumePaths()
         if cfgPath:
@@ -68,10 +67,16 @@ class ItsConfig():
             if not os.path.exists(ItsConfig.VOLUME_FOLDER):
                 # Volume Ordner erzeugen
                 os.makedirs(ItsConfig.VOLUME_FOLDER)
-            ItsConfig.CONFIG_PATH = os.path.join(ItsConfig.VOLUME_FOLDER, ItsConfig.CONFIG_PATH)
-            ItsConfig.DEF_REQ_DIR = os.path.join(ItsConfig.VOLUME_FOLDER, ItsConfig.DEF_REQ_DIR)
-            ItsConfig.DEF_IMGD_DIR = os.path.join(ItsConfig.VOLUME_FOLDER, ItsConfig.DEF_IMGD_DIR)
-            ItsConfig.DEF_MISC_INP_DIR = os.path.join(ItsConfig.VOLUME_FOLDER, ItsConfig.DEF_MISC_INP_DIR)
+
+            if not ItsConfig.VOLUME_FOLDER in ItsConfig.CONFIG_PATH:
+                ItsConfig.CONFIG_PATH = os.path.join(
+                    ItsConfig.VOLUME_FOLDER, ItsConfig.CONFIG_PATH)
+                ItsConfig.DEF_REQ_DIR = os.path.join(
+                    ItsConfig.VOLUME_FOLDER, ItsConfig.DEF_REQ_DIR)
+                ItsConfig.DEF_IMGD_DIR = os.path.join(
+                    ItsConfig.VOLUME_FOLDER, ItsConfig.DEF_IMGD_DIR)
+                ItsConfig.DEF_MISC_INP_DIR = os.path.join(
+                    ItsConfig.VOLUME_FOLDER, ItsConfig.DEF_MISC_INP_DIR)
 
     def __getConfig(self):
         self.cfg = cfgp.ConfigParser()
@@ -167,7 +172,8 @@ class ItsConfig():
             reqDir = self.cfg.get(ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_DIR)
 
         if self.cfg.has_option(ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_QUEUE_SIZE):
-            qSize = self.cfg.getint(ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_QUEUE_SIZE)
+            qSize = self.cfg.getint(
+                ItsConfig.PARAM_REQ, ItsConfig.PARAM_REQ_QUEUE_SIZE)
 
         self.req_cfg = ItsReqCfg(url, key, delay, reqDir, qSize)
 
@@ -175,18 +181,20 @@ class ItsConfig():
         outDir = None
 
         if self.cfg.has_option(ItsConfig.PARAM_IMGD, ItsConfig.PARAM_IMGD_CNT):
-            topImgCnt = self.cfg.get(ItsConfig.PARAM_IMGD, ItsConfig.PARAM_IMGD_CNT)
+            topImgCnt = self.cfg.get(
+                ItsConfig.PARAM_IMGD, ItsConfig.PARAM_IMGD_CNT)
 
         if self.cfg.has_option(ItsConfig.PARAM_IMGD, ItsConfig.PARAM_IMGD_DIR):
-            outDir = self.cfg.get(ItsConfig.PARAM_IMGD, ItsConfig.PARAM_IMGD_DIR)
+            outDir = self.cfg.get(ItsConfig.PARAM_IMGD,
+                                  ItsConfig.PARAM_IMGD_DIR)
 
-        
         self.imgd_cfg = ItsImgDumpCfg(topImgCnt, outDir)
 
     def __getMiscConfig(self):
         inpDir = None
 
         if self.cfg.has_option(ItsConfig.PARAM_MISC, ItsConfig.PARAM_MISC_INP_DIR):
-            inpDir = self.cfg.get(ItsConfig.PARAM_MISC, ItsConfig.PARAM_MISC_INP_DIR)
+            inpDir = self.cfg.get(ItsConfig.PARAM_MISC,
+                                  ItsConfig.PARAM_MISC_INP_DIR)
 
         self.misc = ItsMiscCfg(inpDir)

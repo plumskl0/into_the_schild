@@ -146,7 +146,7 @@ class ItsRequester:
 
     def stopRequesting(self):
         self.log.info('Stopping requester... waiting for Jobs to be finished')
-
+        self.stop = True
         self.imgQueue.join()
         self.reqQueue.join()
 
@@ -193,7 +193,7 @@ class ItsRequester:
             except queue.Empty:
                 self.log.info('Thread {}: Image queue is empty.'.format(tId))
 
-        self.log.info('Thread {} is terminating')
+        self.log.info('Thread {} is terminating'.format(tId))
 
     def startImageCollectionThread(self):
         self.collectThread = Thread(target=self.__collectImages)
@@ -243,8 +243,9 @@ class ItsRequester:
         return random.randrange(size)
 
     def isRequestingFinished(self):
-        _,_,files = next(os.walk())
-        return any(f)
+        _, _, files = next(os.walk(self.reqDir))
+        return not any(files)
+
 
 if __name__ == "__main__":
     req = ItsRequester()
